@@ -1,0 +1,15 @@
+{
+  "name": "presidio-psy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Presidio Psy jam-compliant mobile-first 3D web game scaffold.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}
