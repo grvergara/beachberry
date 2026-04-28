@@ -2,6 +2,19 @@ const DEFAULT_FOV_DEGREES = 70;
 const DEFAULT_NEAR = 0.1;
 const DEFAULT_FAR = 4000;
 const DEFAULT_MAX_DPR = 2;
+const DEFAULT_MIN_DPR = 0.75;
+const DEFAULT_QUALITY_COOLDOWN_MS = 1_000;
+const DEFAULT_LOD_THRESHOLDS = Object.freeze({
+  high: 80,
+  medium: 52,
+  low: 38,
+});
+const DEFAULT_FPS_THRESHOLDS = Object.freeze({
+  downshiftLow: 28,
+  downshiftMedium: 42,
+  upshiftMedium: 52,
+  upshiftHigh: 58,
+});
 const DEFAULT_LAYER_IDS = Object.freeze(["real", "psy", "fractal", "void"]);
 const DEFAULT_COLLIDER_MASK_BY_LAYER = Object.freeze({
   real: "collider-real",
@@ -134,6 +147,148 @@ export function createSceneLifecycle(canvas, options = {}) {
     stop,
     onUpdate,
     dispose,
+  };
+}
+
+export function createQualityScalingController(options = {}) {
+  const thresholds = {
+    ...DEFAULT_FPS_THRESHOLDS,
+    ...(options.fpsThresholds ?? {}),
+  };
+  const lodThresholds = {
+    ...DEFAULT_LOD_THRESHOLDS,
+    ...(options.lodThresholds ?? {}),
+  };
+  const state = {
+    minDpr: clamp(options.minDpr ?? DEFAULT_MIN_DPR, 0.5, 2),
+    maxDpr: clamp(options.maxDpr ?? DEFAULT_MAX_DPR, 0.75, 3),
+    targetDpr: clamp(options.initialDpr ?? options.maxDpr ?? DEFAULT_MAX_DPR, 0.5, 3),
+    lodLevel: "high",
+    fpsAverage: 60,
+    frameWindow: [],
+    windowSize: Number.isFinite(options.windowSize) ? clamp(options.windowSize, 10, 120) : 45,
+    qualityStep: Number.isFinite(options.qualityStep) ? clamp(options.qualityStep, 0.03, 0.25) : 0.08,
+    cooldownMs: Number.isFinite(options.cooldownMs)
+      ? Math.max(250, options.cooldownMs)
+      : DEFAULT_QUALITY_COOLDOWN_MS,
+    lastAdjustmentAt: 0,
+    lodDistanceScale: 1,
+  };
+  const subscribers = new Set();
+
+  function emit(reason = "update") {
+    const snapshot = getSnapshot();
+    for (const subscriber of subscribers) {
+      subscriber(snapshot, reason);
+    }
+  }
+
+  function getLodLevelFromFps(fpsAverage) {
+    if (fpsAverage >= lodThresholds.high) {
+      return "high";
+    }
+    if (fpsAverage >= lodThresholds.medium) {
+      return "medium";
+    }
+    return fpsAverage >= lodThresholds.low ? "low" : "fallback";
+  }
+
+  function getLodDistanceScale(lodLevel) {
+    if (lodLevel === "high") {
+      return 1;
+    }
+    if (lodLevel === "medium") {
+      return 0.8;
+    }
+    if (lodLevel === "low") {
+      return 0.62;
+    }
+    return 0.45;
+  }
+
+  function recordFrame(deltaMs, now = performance.now()) {
+    if (!Number.isFinite(deltaMs) || deltaMs <= 0) {
+      return getSnapshot();
+    }
+    const fps = clamp(1000 / deltaMs, 1, 240);
+    state.frameWindow.push(fps);
+    if (state.frameWindow.length > state.windowSize) {
+      state.frameWindow.shift();
+    }
+    const sum = state.frameWindow.reduce((acc, sample) => acc + sample, 0);
+    state.fpsAverage = sum / state.frameWindow.length;
+    maybeAdjustQuality(now);
+    return getSnapshot();
+  }
+
+  function maybeAdjustQuality(now = performance.now()) {
+    if (now - state.lastAdjustmentAt < state.cooldownMs) {
+      return;
+    }
+    let adjusted = false;
+    if (state.fpsAverage < thresholds.downshiftLow) {
+      state.targetDpr = clamp(state.targetDpr - state.qualityStep, state.minDpr, state.maxDpr);
+      adjusted = true;
+    } else if (state.fpsAverage < thresholds.downshiftMedium) {
+      state.targetDpr = clamp(state.targetDpr - state.qualityStep * 0.5, state.minDpr, state.maxDpr);
+      adjusted = true;
+    } else if (state.fpsAverage > thresholds.upshiftHigh) {
+      state.targetDpr = clamp(state.targetDpr + state.qualityStep * 0.5, state.minDpr, state.maxDpr);
+      adjusted = true;
+    } else if (state.fpsAverage > thresholds.upshiftMedium) {
+      state.targetDpr = clamp(state.targetDpr + state.qualityStep * 0.25, state.minDpr, state.maxDpr);
+      adjusted = true;
+    }
+    const nextLod = getLodLevelFromFps(state.fpsAverage);
+    if (nextLod !== state.lodLevel) {
+      state.lodLevel = nextLod;
+      state.lodDistanceScale = getLodDistanceScale(state.lodLevel);
+      adjusted = true;
+    }
+    if (adjusted) {
+      state.lastAdjustmentAt = now;
+      emit("quality");
+    }
+  }
+
+  function applyRenderer(renderer = {}) {
+    if (!renderer || !Number.isFinite(state.targetDpr)) {
+      return getSnapshot();
+    }
+    renderer.dpr = state.targetDpr;
+    return getSnapshot();
+  }
+
+  function getSnapshot() {
+    return {
+      fpsAverage: Number(state.fpsAverage.toFixed(2)),
+      targetDpr: Number(state.targetDpr.toFixed(3)),
+      lodLevel: state.lodLevel,
+      lodDistanceScale: Number(state.lodDistanceScale.toFixed(2)),
+      thresholds: {
+        fps: { ...thresholds },
+        lod: { ...lodThresholds },
+      },
+    };
+  }
+
+  function subscribe(listener, emitImmediately = true) {
+    if (typeof listener !== "function") {
+      return () => {};
+    }
+    subscribers.add(listener);
+    if (emitImmediately) {
+      listener(getSnapshot(), "subscribe");
+    }
+    return () => subscribers.delete(listener);
+  }
+
+  return {
+    recordFrame,
+    maybeAdjustQuality,
+    applyRenderer,
+    getSnapshot,
+    subscribe,
   };
 }
 

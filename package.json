@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "audit:deps": "npm ls --omit=dev --depth=0",
+    "audit:bundle": "npm run build && node -e \"const fs=require('node:fs');const path=require('node:path');const root='dist';if(!fs.existsSync(root)){throw new Error('dist not found');}const walk=(dir,prefix='')=>fs.readdirSync(dir,{withFileTypes:true}).flatMap((entry)=>entry.isDirectory()?walk(path.join(dir,entry.name),prefix+entry.name+'/'):[{name:prefix+entry.name,size:fs.statSync(path.join(dir,entry.name)).size}]);const stats=walk(root);const total=stats.reduce((acc,f)=>acc+f.size,0);console.log('dist files:',stats.length);for(const f of stats){console.log(' - '+f.name+': '+f.size+' bytes');}console.log('total bytes:',total);\""
   },
   "devDependencies": {
     "vite": "^7.1.0"

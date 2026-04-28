@@ -178,12 +178,12 @@
 
 **Purpose**: Performance hardening, jam compliance verification, and final delivery readiness.
 
-- [ ] T049 [P] Implement dynamic quality scaling and LOD fallback thresholds in `render/scene.js`
-- [ ] T050 [P] Optimize bundle size and dependency audit for minimal-file shipping in `package.json`
-- [ ] T051 Validate jam compliance checklist and widget/embed behavior in `specs/001-presidio-vibe-psy/quickstart.md`
-- [ ] T052 Validate playtest/performance matrix and acceptance outcomes in `specs/001-presidio-vibe-psy/quickstart.md`
-- [ ] T053 Document final architecture decisions and deployment steps in `README.md`
-- [ ] T058 Validate English-only launch copy across HUD/prompts/endings and block non-English strings in `specs/001-presidio-vibe-psy/quickstart.md`
+- [X] T049 [P] Implement dynamic quality scaling and LOD fallback thresholds in `render/scene.js`
+- [X] T050 [P] Optimize bundle size and dependency audit for minimal-file shipping in `package.json`
+- [X] T051 Validate jam compliance checklist and widget/embed behavior in `specs/001-presidio-vibe-psy/quickstart.md`
+- [X] T052 Validate playtest/performance matrix and acceptance outcomes in `specs/001-presidio-vibe-psy/quickstart.md`
+- [X] T053 Document final architecture decisions and deployment steps in `README.md`
+- [X] T058 Validate English-only launch copy across HUD/prompts/endings and block non-English strings in `specs/001-presidio-vibe-psy/quickstart.md`
 
 ---
 
