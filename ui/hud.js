@@ -22,11 +22,30 @@ export function createHud(rootElement) {
   const promptShell = createElement("section", "hud-prompts");
   const promptLabel = createElement("h2", "hud-prompts-label", "Prompts");
   const promptText = createElement("p", "hud-prompts-text", "Walk to discover your first Vibe.");
+  const puzzlePromptText = createElement("p", "hud-puzzle-prompt", "");
   const pickupFeedback = createElement("p", "hud-pickup-feedback", "");
   pickupFeedback.setAttribute("aria-live", "polite");
+  const puzzleProgressShell = createElement("div", "hud-puzzle-progress-shell");
+  const puzzleProgressLabel = createElement("span", "hud-puzzle-progress-label", "Alignment");
+  const puzzleProgressRing = createElement("progress", "hud-puzzle-progress-ring");
+  puzzleProgressRing.max = 1;
+  puzzleProgressRing.value = 0;
+  puzzleProgressRing.setAttribute("aria-label", "Puzzle alignment progress");
+  const puzzleSuccessText = createElement("p", "hud-puzzle-success", "");
+  puzzleSuccessText.setAttribute("aria-live", "polite");
+  const finaleStatusText = createElement("p", "hud-finale-status", "");
+  finaleStatusText.setAttribute("aria-live", "polite");
+  puzzleProgressShell.append(puzzleProgressLabel, puzzleProgressRing);
   const vibesShell = createElement("div", "hud-vibes");
   promptShell.append(promptLabel, promptText);
-  promptShell.append(pickupFeedback, vibesShell);
+  promptShell.append(
+    puzzlePromptText,
+    puzzleProgressShell,
+    puzzleSuccessText,
+    finaleStatusText,
+    pickupFeedback,
+    vibesShell,
+  );
 
   const settingsShell = createElement("section", "hud-settings-panel");
   const settingsLabel = createElement("h2", "hud-settings-label", "Settings");
@@ -46,8 +65,32 @@ export function createHud(rootElement) {
     promptText.textContent = text;
   }
 
+  function setPuzzlePrompt(text) {
+    puzzlePromptText.textContent = text || "";
+  }
+
   function setPickupFeedback(text) {
     pickupFeedback.textContent = text || "";
+  }
+
+  function setPuzzleProgress(ratio, label = "Alignment") {
+    const bounded = Math.max(0, Math.min(1, Number.isFinite(ratio) ? ratio : 0));
+    puzzleProgressRing.value = bounded;
+    puzzleProgressLabel.textContent = label;
+  }
+
+  function setPuzzleSuccessMessage(text) {
+    puzzleSuccessText.textContent = text || "";
+  }
+
+  function setFinaleStatus(solvedCount, requiredCount) {
+    const solved = Number.isFinite(solvedCount) ? solvedCount : 0;
+    const required = Number.isFinite(requiredCount) ? requiredCount : 3;
+    if (solved >= required) {
+      finaleStatusText.textContent = "Finale gate attuned. Return to the void marker.";
+      return;
+    }
+    finaleStatusText.textContent = `Finale prerequisite: ${solved}/${required} viewpoints stabilized.`;
   }
 
   function setVibeHudState(vibeHudState = {}) {
@@ -95,7 +138,11 @@ export function createHud(rootElement) {
     element: hudRoot,
     setMeterValue,
     setPrompt,
+    setPuzzlePrompt,
     setPickupFeedback,
+    setPuzzleProgress,
+    setPuzzleSuccessMessage,
+    setFinaleStatus,
     setVibeHudState,
     emitSpatialCue,
     registerSpatialCueHook,

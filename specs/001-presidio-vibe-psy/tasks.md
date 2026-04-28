@@ -73,11 +73,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Define puzzle contracts (anchors, targets, tolerances, dwell, rewards) in `world/park-anchors.js`
-- [ ] T021 [US2] Implement viewpoint cone/dwell solver and puzzle state machine in `game/puzzles/viewpoint.js`
-- [ ] T022 [US2] Integrate puzzle UI prompts, progress ring, and success messaging in `ui/hud.js`
-- [ ] T023 [US2] Wire puzzle completion gating and finale prerequisite counter (exactly 3) in `game/endings.js`
-- [ ] T024 [US2] Add player-facing mitigation hooks during high distortion alignment in `game/vibes.js`
+- [X] T020 [P] [US2] Define puzzle contracts (anchors, targets, tolerances, dwell, rewards) in `world/park-anchors.js`
+- [X] T021 [US2] Implement viewpoint cone/dwell solver and puzzle state machine in `game/puzzles/viewpoint.js`
+- [X] T022 [US2] Integrate puzzle UI prompts, progress ring, and success messaging in `ui/hud.js`
+- [X] T023 [US2] Wire puzzle completion gating and finale prerequisite counter (exactly 3) in `game/endings.js`
+- [X] T024 [US2] Add player-facing mitigation hooks during high distortion alignment in `game/vibes.js`
 
 **Checkpoint**: US2 works independently with all mandatory puzzle contracts.
 

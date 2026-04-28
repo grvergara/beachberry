@@ -219,3 +219,54 @@ export function createVibeSystem(options = {}) {
     getPickups: () => state.pickups,
   };
 }
+
+export function createHighDistortionMitigationHooks(options = {}) {
+  const cooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : 20_000;
+  const meterReduction = Number.isFinite(options.meterReduction) ? options.meterReduction : 22;
+  const now = options.now ?? (() => performance.now());
+  const canUseClarityBurst = options.canUseClarityBurst ?? (() => false);
+  const onApply = options.onApply ?? (() => {});
+  const onUnavailable = options.onUnavailable ?? (() => {});
+
+  const state = {
+    cooldownUntil: 0,
+    lastAppliedAt: 0,
+  };
+
+  function getSnapshot() {
+    const timeNow = now();
+    return {
+      available: timeNow >= state.cooldownUntil,
+      cooldownRemainingMs: Math.max(0, state.cooldownUntil - timeNow),
+      meterReduction,
+    };
+  }
+
+  function applyDuringAlignment(context = {}) {
+    const timeNow = now();
+    if (timeNow < state.cooldownUntil) {
+      onUnavailable({ reason: "cooldown", snapshot: getSnapshot(), context });
+      return null;
+    }
+    if (!canUseClarityBurst()) {
+      onUnavailable({ reason: "missing-clarity", snapshot: getSnapshot(), context });
+      return null;
+    }
+
+    state.lastAppliedAt = timeNow;
+    state.cooldownUntil = timeNow + cooldownMs;
+    const payload = {
+      meterDelta: -Math.abs(meterReduction),
+      snapshot: getSnapshot(),
+      context,
+    };
+    onApply(payload);
+    return payload;
+  }
+
+  return {
+    state,
+    getSnapshot,
+    applyDuringAlignment,
+  };
+}
