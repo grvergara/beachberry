@@ -22,6 +22,7 @@ export function createTerrainTilesSystem(options = {}) {
   const bounds = options.bounds ?? DEFAULT_BOUNDS;
   const tileSource = options.tileSource ?? null;
   const loadedTiles = new Map();
+  const temporaryPaintPaths = new Map();
 
   async function loadTilesInBounds() {
     if (!tileSource || typeof tileSource.loadTiles !== "function") {
@@ -55,6 +56,19 @@ export function createTerrainTilesSystem(options = {}) {
       }
     }
 
+    const now = typeof options.now === "function" ? options.now() : performance.now();
+    for (const [pathId, path] of temporaryPaintPaths) {
+      if (path.expiresAt <= now) {
+        temporaryPaintPaths.delete(pathId);
+        continue;
+      }
+      walkableTriangles.push({
+        tileId: `paint:${pathId}`,
+        vertices: path.vertices,
+        normal: { x: 0, y: 1, z: 0 },
+      });
+    }
+
     return {
       bounds,
       triangleCount: walkableTriangles.length,
@@ -62,10 +76,67 @@ export function createTerrainTilesSystem(options = {}) {
     };
   }
 
+  function validatePaintPlacement(anchor) {
+    if (!anchor || !Number.isFinite(anchor.x) || !Number.isFinite(anchor.z)) {
+      return { valid: false, reason: "missing-anchor" };
+    }
+    if (!pointInsideBounds(anchor, bounds)) {
+      return { valid: false, reason: "outside-bounds" };
+    }
+    return { valid: true, reason: null };
+  }
+
+  function createTemporaryPaintPath(path = {}) {
+    const now = typeof options.now === "function" ? options.now() : performance.now();
+    const id = path.id ?? `paint-path-${Math.random().toString(36).slice(2, 9)}`;
+    const start = path.start ?? null;
+    const end = path.end ?? null;
+    const validation = validatePaintPlacement(start ?? end);
+    if (!validation.valid) {
+      return { ok: false, reason: validation.reason };
+    }
+    if (!end || !pointInsideBounds(end, bounds)) {
+      return { ok: false, reason: "invalid-endpoint" };
+    }
+    const expiresAt = Number.isFinite(path.expiresAt) ? path.expiresAt : now + 25_000;
+    const vertices = [
+      { x: start.x, y: start.y ?? 0.1, z: start.z },
+      { x: end.x, y: end.y ?? 0.1, z: end.z },
+      { x: end.x, y: (end.y ?? 0.1) + 0.05, z: end.z + 0.5 },
+    ];
+    const record = {
+      id,
+      start,
+      end,
+      createdAt: now,
+      expiresAt,
+      width: Number.isFinite(path.width) ? path.width : 1.6,
+      vertices,
+      source: path.source ?? "paint-weaver",
+    };
+    temporaryPaintPaths.set(id, record);
+    return { ok: true, path: record };
+  }
+
+  function clearExpiredPaintPaths(timeNow = typeof options.now === "function" ? options.now() : performance.now()) {
+    let removed = 0;
+    for (const [pathId, path] of temporaryPaintPaths) {
+      if (path.expiresAt <= timeNow) {
+        temporaryPaintPaths.delete(pathId);
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+
   return {
     bounds,
     loadedTiles,
     loadTilesInBounds,
     extractWalkableCollisionMesh,
+    validatePaintPlacement,
+    createTemporaryPaintPath,
+    clearExpiredPaintPaths,
+    getTemporaryPaintPaths: () => [...temporaryPaintPaths.values()],
   };
 }

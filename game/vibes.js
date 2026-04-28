@@ -1,6 +1,10 @@
 import { randomInRange } from "../content/seeds.js";
 
 const PICKUP_RADIUS = 3;
+const DEFAULT_PAINT_MAX_CHARGES = 3;
+const DEFAULT_PAINT_CHARGE_DURATION_MS = 25_000;
+const DEFAULT_PAINT_RECHARGE_MS = 15_000;
+const DEFAULT_PAINT_LOW_METER_THRESHOLD = 0.35;
 
 const BASE_PICKUP_CATALOG = Object.freeze([
   {
@@ -100,6 +104,19 @@ export function createVibeSystem(options = {}) {
   const state = {
     activeTemporary: null,
     pickups: [],
+    paintMode: {
+      enabled: false,
+      charges: 0,
+      maxCharges: DEFAULT_PAINT_MAX_CHARGES,
+      chargeDurationMs: DEFAULT_PAINT_CHARGE_DURATION_MS,
+      rechargeMs: DEFAULT_PAINT_RECHARGE_MS,
+      lowMeterThreshold: DEFAULT_PAINT_LOW_METER_THRESHOLD,
+      activeChargeStartedAt: 0,
+      activeChargeExpiresAt: 0,
+      lastRechargeAt: 0,
+      lastInvalidReason: null,
+      activePlacements: [],
+    },
   };
 
   function getCatalogEntry(vibeId) {
@@ -161,6 +178,19 @@ export function createVibeSystem(options = {}) {
       if (vibe.cooldownMs) {
         cooldownUntilByVibe.set(vibe.id, timeNow + vibe.cooldownMs);
       }
+      if (vibe.id === "V03") {
+        state.paintMode.enabled = true;
+        state.paintMode.maxCharges = Number.isFinite(vibe.charges) ? Math.max(1, Math.floor(vibe.charges)) : 3;
+        state.paintMode.chargeDurationMs = Number.isFinite(vibe.durationMs)
+          ? Math.max(1_000, vibe.durationMs)
+          : DEFAULT_PAINT_CHARGE_DURATION_MS;
+        state.paintMode.charges = state.paintMode.maxCharges;
+        state.paintMode.activeChargeStartedAt = 0;
+        state.paintMode.activeChargeExpiresAt = 0;
+        state.paintMode.lastRechargeAt = timeNow;
+        state.paintMode.lastInvalidReason = null;
+        state.paintMode.activePlacements = [];
+      }
     }
 
     onSpatialCue({
@@ -197,7 +227,44 @@ export function createVibeSystem(options = {}) {
   function update() {
     const currentTime = nowMs(options.now);
     if (state.activeTemporary && currentTime >= state.activeTemporary.expiresAt) {
+      if (state.activeTemporary.id === "V03") {
+        state.paintMode.enabled = false;
+        state.paintMode.activeChargeStartedAt = 0;
+        state.paintMode.activeChargeExpiresAt = 0;
+        state.paintMode.activePlacements = [];
+      }
       state.activeTemporary = null;
+    }
+
+    if (!state.paintMode.enabled) {
+      return;
+    }
+
+    state.paintMode.activePlacements = state.paintMode.activePlacements.filter(
+      (placement) => placement.expiresAt > currentTime,
+    );
+
+    const meterSnapshot = options.getMeterSnapshot?.();
+    const meterNormalized = Number.isFinite(meterSnapshot?.normalized) ? meterSnapshot.normalized : 1;
+    if (meterNormalized < state.paintMode.lowMeterThreshold) {
+      state.paintMode.enabled = false;
+      state.paintMode.lastInvalidReason = "meter-too-low";
+      state.paintMode.activeChargeStartedAt = 0;
+      state.paintMode.activeChargeExpiresAt = 0;
+      state.paintMode.activePlacements = [];
+      if (state.activeTemporary?.id === "V03") {
+        state.activeTemporary = null;
+      }
+      return;
+    }
+
+    if (
+      state.paintMode.charges < state.paintMode.maxCharges &&
+      meterNormalized <= state.paintMode.lowMeterThreshold + 0.05 &&
+      currentTime - state.paintMode.lastRechargeAt >= state.paintMode.rechargeMs
+    ) {
+      state.paintMode.charges += 1;
+      state.paintMode.lastRechargeAt = currentTime;
     }
   }
 
@@ -205,7 +272,51 @@ export function createVibeSystem(options = {}) {
     return {
       activeTemporary: state.activeTemporary,
       persistentVibes: [...persistentVibes].map((id) => getCatalogEntry(id)).filter(Boolean),
+      paintMode: {
+        enabled: state.paintMode.enabled,
+        charges: state.paintMode.charges,
+        maxCharges: state.paintMode.maxCharges,
+        chargeDurationMs: state.paintMode.chargeDurationMs,
+        activeChargeExpiresAt: state.paintMode.activeChargeExpiresAt,
+        activePlacements: state.paintMode.activePlacements.length,
+        lastInvalidReason: state.paintMode.lastInvalidReason,
+      },
     };
+  }
+
+  function beginPaintPlacement(position) {
+    const currentTime = nowMs(options.now);
+    if (!state.paintMode.enabled) {
+      state.paintMode.lastInvalidReason = "paint-unavailable";
+      return { ok: false, reason: "paint-unavailable" };
+    }
+    if (state.paintMode.charges <= 0) {
+      state.paintMode.lastInvalidReason = "no-charges";
+      return { ok: false, reason: "no-charges" };
+    }
+    state.paintMode.charges -= 1;
+    state.paintMode.activeChargeStartedAt = currentTime;
+    state.paintMode.activeChargeExpiresAt = currentTime + state.paintMode.chargeDurationMs;
+    state.paintMode.lastRechargeAt = currentTime;
+    state.paintMode.lastInvalidReason = null;
+    const placement = {
+      id: `paint-${Math.random().toString(36).slice(2, 10)}`,
+      createdAt: currentTime,
+      expiresAt: currentTime + state.paintMode.chargeDurationMs,
+      position,
+    };
+    state.paintMode.activePlacements.push(placement);
+    return {
+      ok: true,
+      placement,
+      chargesRemaining: state.paintMode.charges,
+      expiresAt: placement.expiresAt,
+    };
+  }
+
+  function invalidatePaintPlacement(reason) {
+    state.paintMode.lastInvalidReason = reason || "invalid-placement";
+    return getHudState().paintMode;
   }
 
   return {
@@ -215,7 +326,10 @@ export function createVibeSystem(options = {}) {
     collectPickup,
     findPickupInRange,
     update,
+    beginPaintPlacement,
+    invalidatePaintPlacement,
     getHudState,
+    getPaintState: () => ({ ...state.paintMode }),
     getPickups: () => state.pickups,
   };
 }

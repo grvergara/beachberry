@@ -68,7 +68,15 @@ export function createHud(rootElement) {
   });
   layerShell.append(layerLabel, layerStateText, layerSuggestionText, layerLockoutText, layerControls);
 
-  hudRoot.append(meterShell, promptShell, layerShell, settingsShell);
+  const paintShell = createElement("section", "hud-paint-panel");
+  const paintLabel = createElement("h2", "hud-paint-label", "Paint Weaver");
+  const paintStatusText = createElement("p", "hud-paint-status", "Paint mode offline");
+  const paintChargeText = createElement("p", "hud-paint-charges", "Charges: 0/0");
+  const paintInvalidText = createElement("p", "hud-paint-invalid", "");
+  paintInvalidText.setAttribute("aria-live", "polite");
+  paintShell.append(paintLabel, paintStatusText, paintChargeText, paintInvalidText);
+
+  hudRoot.append(meterShell, promptShell, layerShell, paintShell, settingsShell);
   rootElement.appendChild(hudRoot);
   const cueHooks = new Set();
   const layerControlHooks = new Set();
@@ -125,6 +133,9 @@ export function createHud(rootElement) {
       entries.push(`${vibe.icon} ${vibe.name}`);
     }
     vibesShell.textContent = entries.join(" | ");
+    if (vibeHudState.paintMode) {
+      setPaintModeState(vibeHudState.paintMode);
+    }
   }
 
   function setLayerState(layerState = {}) {
@@ -155,6 +166,43 @@ export function createHud(rootElement) {
       return;
     }
     layerLockoutText.textContent = feedback.message;
+  }
+
+  function formatPaintInvalidReason(reason) {
+    switch (reason) {
+      case "outside-bounds":
+      case "invalid-endpoint":
+      case "invalid-placement":
+        return "Paint can only be placed on valid walkable terrain.";
+      case "no-charges":
+        return "Paint Weaver is out of charges.";
+      case "meter-too-low":
+        return "Meter is too low to sustain paint paths.";
+      case "paint-unavailable":
+        return "Paint Weaver is inactive.";
+      default:
+        return "";
+    }
+  }
+
+  function setPaintModeState(paintState = {}) {
+    const enabled = Boolean(paintState.enabled);
+    const charges = Number.isFinite(paintState.charges) ? paintState.charges : 0;
+    const maxCharges = Number.isFinite(paintState.maxCharges) ? paintState.maxCharges : 0;
+    const activePlacements = Number.isFinite(paintState.activePlacements) ? paintState.activePlacements : 0;
+    paintStatusText.textContent = enabled
+      ? `Paint mode online${activePlacements > 0 ? ` (${activePlacements} active path${activePlacements === 1 ? "" : "s"})` : ""}`
+      : "Paint mode offline";
+    paintChargeText.textContent = `Charges: ${charges}/${maxCharges}`;
+    if (paintState.lastInvalidReason) {
+      paintInvalidText.textContent = formatPaintInvalidReason(paintState.lastInvalidReason);
+    } else if (!enabled) {
+      paintInvalidText.textContent = "";
+    }
+  }
+
+  function setPaintInvalidPlacementFeedback(feedback = {}) {
+    paintInvalidText.textContent = formatPaintInvalidReason(feedback.reason);
   }
 
   function emitLayerControlRequest(payload) {
@@ -211,6 +259,8 @@ export function createHud(rootElement) {
     setPuzzleSuccessMessage,
     setFinaleStatus,
     setVibeHudState,
+    setPaintModeState,
+    setPaintInvalidPlacementFeedback,
     setLayerState,
     setLayerLockoutFeedback,
     emitSpatialCue,

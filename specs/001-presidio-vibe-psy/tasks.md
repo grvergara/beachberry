@@ -110,11 +110,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T030 [P] [US4] Implement mutation uniforms/material modulation pipeline in `render/post.js`
-- [ ] T031 [P] [US4] Author shader programs for vegetation/structure stylization in `render/shaders/mutation.glsl`
-- [ ] T032 [US4] Implement paint ability state, charges, and expiry rules in `game/vibes.js`
-- [ ] T033 [US4] Implement temporary bridge/path generation with collision integration in `world/terrain-tiles.js`
-- [ ] T034 [US4] Add paint mode HUD affordances and invalid-placement feedback in `ui/hud.js`
+- [X] T030 [P] [US4] Implement mutation uniforms/material modulation pipeline in `render/post.js`
+- [X] T031 [P] [US4] Author shader programs for vegetation/structure stylization in `render/shaders/mutation.glsl`
+- [X] T032 [US4] Implement paint ability state, charges, and expiry rules in `game/vibes.js`
+- [X] T033 [US4] Implement temporary bridge/path generation with collision integration in `world/terrain-tiles.js`
+- [X] T034 [US4] Add paint mode HUD affordances and invalid-placement feedback in `ui/hud.js`
 
 **Checkpoint**: US4 delivers mutation + paint traversal mechanics independently.
 
