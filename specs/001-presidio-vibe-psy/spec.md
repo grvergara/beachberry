@@ -3,7 +3,18 @@
 **Feature Branch**: `001-presidio-vibe-psy`  
 **Created**: 2026-04-28  
 **Status**: Draft  
-**Input**: User description: Web psy-fi 3D adventure on the real Presidio Tunnel Tops map (San Francisco); relaxed exploration becoming mind-bending as players collect “Vibes” and alter reality; Vibe Jam 2026 constraints (single bundle, fast load, no login, official widget, mobile-friendly); full mechanic set including viewpoint puzzles, reality layers, procedural environment mutation, day/night cycle, optional lightweight multiplayer echoes, multiple endings; target run 15–40 minutes with procedural seeding for Vibe placement.
+**Input**: User description: Web psy-fi 3D adventure on the real Presidio Tunnel Tops map (San Francisco); relaxed exploration that bends into a controlled neon-psy rupture as players collect “Vibes” and alter reality; Vibe Jam 2026 constraints (single bundle, fast load, no login, official widget, mobile-friendly); full mechanic set including viewpoint puzzles, reality layers, procedural environment mutation, day/night cycle, optional lightweight multiplayer echoes, multiple endings; target run 15–40 minutes with procedural seeding for Vibe placement.
+
+## Clarifications
+
+### Session 2026-04-27
+
+- Q: What should be the default multiplayer echoes behavior on first launch? → A: Multiplayer echoes disabled by default; player can opt in.
+- Q: What launch localization scope should be committed? → A: English-only UI and narrative at launch.
+- Q: What player identity model should optional echoes use? → A: Ephemeral random session ID only (no stored history).
+- Q: How many viewpoint puzzles are required on the critical path? → A: Exactly 3 required viewpoint puzzles.
+- Q: What should be the target median completion time? → A: 25 minutes.
+- Q: What minimum runtime performance target should be required on a mid-tier phone? → A: At least 30 FPS.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -25,7 +36,13 @@ A player opens the game on mobile or desktop and within moments can move through
 
 ### User Story 2 - Viewpoint alignment puzzles at real overlooks (Priority: P1)
 
-At designated overlooks (e.g. Bay-facing and landmark-facing vantage points), the player discovers puzzles that require aiming their view toward recognizable distant landmarks (bridge, island, skyline) while managing meter-driven distortion. Solving an alignment unlocks a **new layer** of paths, objects, or narrative beats.
+At designated overlooks (e.g. Bay-facing and landmark-facing vantage points), the player discovers puzzles that require aiming their view toward recognizable distant landmarks while managing meter-driven distortion. Solving an alignment unlocks a **new layer** of paths, objects, or narrative beats.
+
+Mandatory puzzle set (critical path, exactly three):
+- **Puzzle 1 — Bay Overlook**: Align to **Golden Gate Bridge** (reward: unlocks Psy layer + short-flight ability).
+- **Puzzle 2 — Veterans Overlook / Cliff Walk**: Align to **Alcatraz** and then stabilize on **SF skyline** in sequence (reward: opens Fractal layer + paint ability).
+- **Puzzle 3 — Golden Gate-facing overlook / Presidio Point node**: Align to **Palace of Fine Arts** with skyline parallax confirmation (reward: access to Void layer + finale gate).
+
 
 **Why this priority**: This is the signature “real map + mind game” hook and differentiates the entry from generic walking sims.
 
@@ -85,7 +102,7 @@ Time advances faster than real time. **Day** favors clearer navigation and calme
 
 ### User Story 6 - Optional multiplayer “echoes” and cooperative sync moments (Priority: P3)
 
-When networking is available and the player opts in (or the build defaults to “echoes on”), other players appear as **semi-transparent echoes**. Lightweight cooperative sync (e.g. simultaneous Vibe states) triggers **large shared spectacle** (portal, pillar, or layer surge) that benefits all participants briefly.
+When networking is available and the player opts in, other players appear as **semi-transparent echoes**. Lightweight cooperative sync (e.g. simultaneous Vibe states) triggers **large shared spectacle** (portal, pillar, or layer surge) that benefits all participants briefly.
 
 **Why this priority**: Strong differentiation but must remain optional so solo play and judging remain reliable.
 
@@ -141,12 +158,13 @@ A single run (target **15–40 minutes** for a completionist path) culminates in
 #### Core loop
 
 - **FR-007**: The experience MUST present a persistent **Vibe Meter** whose level is understandable at a glance and drives escalating/receding “psy distortion” of the environment.
-- **FR-008**: When the meter decreases, the world MUST trend toward a more grounded presentation, while **never returning to fully mundane** presentation (a subtle residual effect always remains).
+- **FR-008**: When the meter decreases, the world MUST trend toward a more grounded presentation, while **never returning to fully mundane** presentation (a subtle residual effect always remains, and no state reaches a mathematically “100% real” baseline).
 - **FR-009**: The world MUST contain **collectible Vibes** placed at plausible real-world coordinates within the bounded map, each granting **temporary or persistent** abilities or states documented in the ability matrix (see Supplement).
 
 #### Puzzles and progression
 
 - **FR-010**: At **real overlooks** within the map, the experience MUST include **viewpoint alignment puzzles** that require aiming toward **real distant landmarks** (e.g. suspension bridge toward the ocean, island prison, downtown skyline) within tolerance windows, sometimes gated by meter or Vibe state.
+- **FR-023**: The critical path MUST require completion of **exactly 3** viewpoint alignment puzzles before finale gate access.
 - **FR-011**: Completing viewpoint puzzles MUST unlock **layer content** (paths, objects, or narrative beats) per puzzle contract.
 - **FR-012**: The experience MUST implement **3–4 superposed reality layers** with consistent rules for what exists in each layer and how the player transitions.
 
@@ -155,7 +173,8 @@ A single run (target **15–40 minutes** for a completionist path) culminates in
 - **FR-013**: Park elements (vegetation, select structures, props) MUST **visually mutate** as a function of meter level and procedural variation rules.
 - **FR-014**: With the appropriate Vibe, the player MUST be able to **author temporary traversable paths or bridges** on valid terrain according to placement rules and duration caps.
 - **FR-015**: The experience MUST run an **accelerated day/night cycle** that measurably changes mood (audio + sky + landmark-related lighting behavior) while preserving critical readability.
-- **FR-016**: **Optional lightweight multiplayer** MUST be implementable as a mode where remote players appear as **echo avatars**; when enabled, defined **cooperative sync events** MUST be possible without blocking solo completion when disabled or offline.
+- **FR-016**: **Optional lightweight multiplayer** MUST be implementable as a mode where remote players appear as **echo avatars**; the experience MUST default to echoes **disabled** on first launch and require explicit player opt-in; when enabled, defined **cooperative sync events** MUST be possible without blocking solo completion when disabled or offline.
+- **FR-022**: Optional echoes networking MUST use only **ephemeral random session IDs** with no persistent player handle and no session history storage.
 - **FR-017**: The game MUST support **multiple endings** resolvable in one run, keyed to **meter balance** and **Vibes collected**, including at minimum the three archetypes: grounded “Real”, maximalist “Total Psy”, and secret “Eras un glitch”.
 - **FR-018**: New runs MUST accept a **procedural seed** that changes placement of movable anomalies while **not** relocating real anchor geography used for orientation.
 
@@ -166,6 +185,8 @@ A single run (target **15–40 minutes** for a completionist path) culminates in
 #### Build and delivery shape
 
 - **FR-020**: Deliverable MUST match **single-bundle or minimal-file** shipping per constitution: one primary HTML entry with collapsed logic, plus only optional tiny assets if jam rules allow, with **initial transfer budget** aligned to ultra-light goals (project target **under ~8 MB** for first playable payload where feasible).
+- **FR-021**: Launch UI and narrative text MUST ship in **English only**; additional languages are explicitly out of scope for this jam submission.
+- **FR-024**: All core mechanics (viewpoint puzzles, layer transitions, mutation, day/night, optional echoes) MUST remain **ultra-lightweight**: no heavy runtime dependencies, no server-mandatory systems, and no mechanic may require breaking single/minimal-bundle constraints.
 
 ### Key Entities
 
@@ -173,7 +194,7 @@ A single run (target **15–40 minutes** for a completionist path) culminates in
 - **Vibe pickup**: Identifier, world position (seed-relative), permanence class (temporary vs persistent effect), effect contract (movement modifier, clarity burst, paint charge, etc.), stacking rules with other Vibes.
 - **Reality layer**: Ordinal depth, visibility rules for meshes/pickups/colliders, transition costs (meter/time), audio filter profile.
 - **Viewpoint puzzle**: Overlook anchor ID, landmark target(s), tolerance cones/dwell time, optional Vibe gates, reward (layer unlock, bridge token, meter clip).
-- **Echo player (optional)**: Ephemeral representation, sync state for co-op spectacle, privacy-safe identity (no PII required).
+- **Echo player (optional)**: Ephemeral representation, sync state for co-op spectacle, ephemeral random session ID, no PII, no persisted history.
 - **Ending**: Preconditions on meter histogram and inventory bitmask; resulting epilogue variant.
 
 ## Success Criteria *(mandatory)*
@@ -183,16 +204,17 @@ A single run (target **15–40 minutes** for a completionist path) culminates in
 - **SC-001**: On a reference mid-tier phone profile defined in planning, **first playable movement** (walk + HUD visible) occurs within **~2 seconds** of navigation start under the team’s throttled test profile.
 - **SC-002**: **≥90%** of shipped source lines are attributable to **AI-assisted generation** with human integration, per the jam’s stated expectation and team tracking method.
 - **SC-003**: **≥95%** of playtesters in structured sessions complete **first Vibe collection** and **one viewpoint puzzle** without coaching in under **10 minutes**.
-- **SC-004**: A full completionist run (layers + major puzzles + one ending) completes in **15–40 minutes** median across internal playtests.
+- **SC-004**: A full completionist run (layers + major puzzles + one ending) completes in **15–40 minutes**, with a target median of **25 minutes** across internal playtests.
 - **SC-005**: With multiplayer disabled, **100%** of critical path puzzles and **at least one ending per archetype** remain reachable (verified by test matrix).
 - **SC-006**: Changing procedural seed alters **≥70%** of anomaly placements versus a baseline screenshot set while **landmark sightlines** from overlooks remain valid for puzzle targets.
 - **SC-007**: **Jam compliance checklist** (widget, no login, embed, attribution) passes a pre-submit audit with zero blocking issues.
+- **SC-008**: On the reference mid-tier phone profile defined in planning, median runtime frame rate during active traversal and one viewpoint puzzle remains **≥30 FPS** with no sustained drops below **24 FPS** for longer than **3 seconds**.
 
 ## Assumptions
 
 - Official jam text remains compatible with a **single-file or near-single-file** deliverable and permits the chosen geodata approach within size rules; any deviation is recorded before submit.
 - **Geodata licensing** for the Presidio slice (tiles, height, OSM-derived props) is cleared for competition display and hosting.
-- Players understand **English and/or Spanish** UI copy; localization beyond that is out of scope for jam unless time permits.
+- Players understand **English** UI copy; localization is out of scope for this jam submission unless explicitly re-scoped.
 - “**Real map**” means believable correlation to paths and overlooks, not survey-grade centimeter accuracy.
 - AI line-count reporting uses a simple definition (e.g. generated vs hand-edited file attribution) documented in the plan phase.
 
@@ -212,11 +234,11 @@ This section exists so planners and implementers receive the concrete structure 
 | Multiplayer echo | Off / Solo-compatible / Echo-visible | Opt-in flag; presence channel; spectacle window open/closed |
 | Ending resolver | Open → Locked-in at finale gate | Evaluate meter integral + inventory + secret flags |
 
-### B. Suggested final titles and tone
+### B. Final title and tone
 
-- **Primary**: *Presidio Psy* (working)  
-- **Alternates**: *Tunnel Tops Trip*, *Bluff Glitch*, *Cliff Walk Void*, *Golden Gate Dream State*  
-- **Tone keywords**: hopeful weird, California golden-hour → neon void, “park that remembers you”.
+- **Final title**: *Presidio Psy*  
+- **Runner-up alternates**: *Cliff Walk Void*, *Tunnel Tops Fracture*, *Bluff Glitch*  
+- **Tone keywords**: hopeful weird, California golden-hour -> neon void, “park that remembers you”, psy-fi awe with legible navigation.
 
 ### C. Color and art direction
 
@@ -252,11 +274,30 @@ Logical files inside one bundle (names indicative):
 
 - **Core**: `WebGLRenderer`, tone mapping choice documented, `PMREM` if needed for probes, performance monitor in dev.  
 - **World**: instanced meshes for grass/trees; merged static geometry for park props; **LOD** groups tied to camera distance.  
-- **Geospatial stack** (pick one primary path in plan): **Flywave.gl** *or* **3D Tiles / heightfield pipeline** compatible with OSM context—plan must record choice and fallback if SDK blocks bundle size.  
+- **Geospatial stack (DECIDED)**: **Flywave.gl is the primary path** (native Three.js integration, modular loading, tighter control for minimal bundle). **3DTilesRendererJS is fallback-only** if Flywave.gl integration is blocked by data/licensing issues; fallback still must honor transfer budget.  
 - **Compression**: **Draco** / **KTX2** where meshes/textures appear.  
 - **Physics**: **basic collisions** player ↔ terrain ↔ simple props; no deep physics puzzle reliance.  
 - **Post**: `EffectComposer` chain with **bloom**, **glitch**, meter-driven uniforms; custom full-screen shader for sky/fractal layer.  
 - **Input**: pointer lock + touch; gyro optional.
+
+**Geospatial decision (locked for implementation)**:
+- Primary: Flywave.gl (preferred for native Three.js path + modularity + bundle control).
+- Fallback (only if blocker): 3DTilesRendererJS + custom heightmap/satellite texture for Tunnel Tops area.
+- Scope: only the central playable corridor (Outpost -> Cliff Walk -> Overlooks -> Campfire Circle), with real anchors:
+  - Outpost playground
+  - Cliff Walk trail spine
+  - Bay Overlook
+  - Veterans Overlook
+  - Golden Gate-facing overlook node
+  - Campfire Circle
+  - Presidio Steps
+  - Main Lawn / picnic lawns
+  - Transit/visitor edge near Presidio Transit Center access
+- Landmark targets used by mandatory puzzles:
+  - Golden Gate Bridge
+  - Alcatraz Island
+  - San Francisco skyline
+  - Palace of Fine Arts
 
 ### F. Phased implementation plan (iterative)
 
@@ -265,7 +306,7 @@ Logical files inside one bundle (names indicative):
 3. **Phase 2 — Meter + post stack**: meter HUD, distortion ramps, never-fully-normal residual.  
 4. **Phase 3 — Vibes v1**: 3 pickups, 2 temp abilities, 1 persistent, seed placement.  
 5. **Phase 4 — Layers**: 3 layers with visibility rules + one puzzle-gated transition to fourth if scoped.  
-6. **Phase 5 — Viewpoints**: 2–3 overlooks with landmark alignment + rewards.  
+6. **Phase 5 — Viewpoints**: exactly 3 mandatory overlooks with real landmark alignment contracts + rewards.  
 7. **Phase 6 — Mutation + paint**: grass/tree shaders; paint bridge with decay rules.  
 8. **Phase 7 — Night suite**: bridge lights behavior, star fractals, stronger drones.  
 9. **Phase 8 — Endings**: matrix, finale gate, three endings + secret flag path.  
