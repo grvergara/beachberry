@@ -23,6 +23,8 @@ description: "Task list template for feature implementation"
 - **Single project**: `src/`, `tests/` at repository root
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
+- **Jam single-file game**: e.g. `index.html` or `dist/index.html` at repo root per plan;
+  tasks MUST name the actual artifact paths.
 - Paths shown below assume single project - adjust based on plan.md structure
 
 <!-- 

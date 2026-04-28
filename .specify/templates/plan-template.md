@@ -31,7 +31,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Reference: `.specify/memory/constitution.md` (Beachberry / Cursor Vibe Jam 2026).
+
+- [ ] **Single bundle**: Deliverable is one HTML/JS bundle or explicitly minimal file count.
+- [ ] **Vibe Jam**: All official rules satisfied (widget, no login wall, etc.).
+- [ ] **Performance**: Mobile-first; initial playable load within ~2s target where feasible.
+- [ ] **Stack**: Three.js + custom shaders + post-processing; deviations need Complexity Tracking.
+- [ ] **Scope**: Shippable before 2026-05-01; psychedelic visuals prioritized over feature creep.
 
 ## Project Structure
 
