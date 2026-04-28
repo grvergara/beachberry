@@ -80,6 +80,10 @@
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
   Fill them out with the right functional requirements.
+  
+  For Beachberry / Vibe Jam work: align functional requirements with
+  `.specify/memory/constitution.md` (bundle shape, widget, no login, mobile-first,
+  Three.js + shaders + post-processing).
 -->
 
 ### Functional Requirements
