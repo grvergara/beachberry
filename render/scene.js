@@ -214,6 +214,15 @@ function clamp01(value) {
   return clamp(Number.isFinite(value) ? value : 0, 0, 1);
 }
 
+function interpolatePose(currentPose, targetPose, t) {
+  return {
+    x: lerp(currentPose.x, targetPose.x, t),
+    y: lerp(currentPose.y, targetPose.y, t),
+    z: lerp(currentPose.z, targetPose.z, t),
+    yaw: lerp(currentPose.yaw, targetPose.yaw, t),
+  };
+}
+
 function createLandmarkLights(phaseId) {
   const activeAtNight = phaseId === "night" || phaseId === "dusk" || phaseId === "dawn";
   return {
@@ -313,6 +322,123 @@ export function createDayNightSceneController(options = {}) {
     bindClock,
     applyMeterSnapshot,
     setComfortOptions,
+    subscribe,
+    getSnapshot,
+  };
+}
+
+export function createRemoteEchoRenderHooks(options = {}) {
+  const entries = new Map();
+  const staleAfterMs = Number.isFinite(options.staleAfterMs) ? Math.max(1_000, options.staleAfterMs) : 8_000;
+  const interpolationFactor = clamp01(options.interpolationFactor ?? 0.22);
+  const subscribers = new Set();
+
+  function emit(reason = "update") {
+    const snapshot = getSnapshot();
+    for (const subscriber of subscribers) {
+      subscriber(snapshot, reason);
+    }
+  }
+
+  function upsertEchoPose(remoteEcho = {}, timestampMs = performance.now()) {
+    if (!remoteEcho.sessionId) {
+      return null;
+    }
+    const previous = entries.get(remoteEcho.sessionId);
+    const nextTarget = {
+      x: Number.isFinite(remoteEcho.pose?.x) ? remoteEcho.pose.x : previous?.targetPose?.x ?? 0,
+      y: Number.isFinite(remoteEcho.pose?.y) ? remoteEcho.pose.y : previous?.targetPose?.y ?? 0,
+      z: Number.isFinite(remoteEcho.pose?.z) ? remoteEcho.pose.z : previous?.targetPose?.z ?? 0,
+      yaw: Number.isFinite(remoteEcho.pose?.yaw) ? remoteEcho.pose.yaw : previous?.targetPose?.yaw ?? 0,
+    };
+    const entry = {
+      sessionId: remoteEcho.sessionId,
+      pose: previous?.pose ?? { ...nextTarget },
+      targetPose: nextTarget,
+      visible: remoteEcho.visible !== false,
+      confidence: clamp01(remoteEcho.confidence ?? previous?.confidence ?? 0.75),
+      lastSeenAt: timestampMs,
+    };
+    entries.set(entry.sessionId, entry);
+    emit("pose");
+    return { ...entry };
+  }
+
+  function ingestRemoteEchoes(remoteEchoes = [], timestampMs = performance.now()) {
+    for (const remoteEcho of remoteEchoes) {
+      upsertEchoPose(remoteEcho, timestampMs);
+    }
+    return getSnapshot();
+  }
+
+  function update(nowMs = performance.now()) {
+    let changed = false;
+    for (const entry of entries.values()) {
+      const staleMs = nowMs - entry.lastSeenAt;
+      if (staleMs >= staleAfterMs) {
+        if (entry.visible) {
+          entry.visible = false;
+          changed = true;
+        }
+        continue;
+      }
+      const before = entry.pose;
+      const next = interpolatePose(entry.pose, entry.targetPose, interpolationFactor);
+      entry.pose = next;
+      entry.confidence = clamp01(1 - staleMs / staleAfterMs);
+      if (
+        Math.abs(next.x - before.x) > 0.001 ||
+        Math.abs(next.y - before.y) > 0.001 ||
+        Math.abs(next.z - before.z) > 0.001 ||
+        Math.abs(next.yaw - before.yaw) > 0.001
+      ) {
+        changed = true;
+      }
+    }
+    if (changed) {
+      emit("interpolate");
+    }
+    return getSnapshot();
+  }
+
+  function getVisibleEchoes() {
+    return [...entries.values()].filter((entry) => entry.visible && entry.confidence > 0.05);
+  }
+
+  function subscribe(listener, emitImmediately = true) {
+    if (typeof listener !== "function") {
+      return () => {};
+    }
+    subscribers.add(listener);
+    if (emitImmediately) {
+      listener(getSnapshot(), "subscribe");
+    }
+    return () => subscribers.delete(listener);
+  }
+
+  function getSnapshot() {
+    return {
+      echoes: [...entries.values()].map((entry) => ({
+        sessionId: entry.sessionId,
+        pose: { ...entry.pose },
+        targetPose: { ...entry.targetPose },
+        visible: entry.visible,
+        confidence: entry.confidence,
+        lastSeenAt: entry.lastSeenAt,
+      })),
+      visibleEchoes: getVisibleEchoes().map((entry) => ({
+        sessionId: entry.sessionId,
+        pose: { ...entry.pose },
+        confidence: entry.confidence,
+      })),
+    };
+  }
+
+  return {
+    upsertEchoPose,
+    ingestRemoteEchoes,
+    update,
+    getVisibleEchoes,
     subscribe,
     getSnapshot,
   };

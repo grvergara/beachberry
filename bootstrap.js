@@ -6,7 +6,8 @@ import { createVibeMeter } from "./game/vibe-meter.js";
 import { createVibeSystem } from "./game/vibes.js";
 import { createSpatialAudioMoodController } from "./audio/spatial.js";
 import { createPostComposer } from "./render/post.js";
-import { createDayNightSceneController, createSceneLifecycle } from "./render/scene.js";
+import { createDayNightSceneController, createRemoteEchoRenderHooks, createSceneLifecycle } from "./render/scene.js";
+import { createEchoesController } from "./net/echoes.js";
 import { createHud } from "./ui/hud.js";
 import { PARK_ANCHORS } from "./world/park-anchors.js";
 import { createTerrainTilesSystem } from "./world/terrain-tiles.js";
@@ -129,6 +130,27 @@ function startRuntime() {
     vibeSystem,
     hud,
   });
+  const echoRenderHooks = createRemoteEchoRenderHooks();
+  const echoes = createEchoesController({
+    enabled: featureFlags.echoesEnabled,
+    onStatus: (snapshot) => {
+      hud.setEchoesStatus(snapshot);
+      if (snapshot.handshakeState === "offline") {
+        hud.setEchoesFallbackMessage(
+          "Offline fallback active: all mandatory puzzles, layers, and endings remain solo-completable.",
+        );
+      } else if (snapshot.handshakeState === "disabled") {
+        hud.setEchoesFallbackMessage("Echoes are optional. Solo progression is fully preserved.");
+      } else {
+        hud.setEchoesFallbackMessage("");
+      }
+    },
+    onSyncSpectacle: (event) => {
+      hud.setPrompt(`Co-op sync surge: ${event.key}. Spectacle active for ${Math.round(event.boostMs / 1000)}s.`);
+      hud.setFinaleMessage("Sync spectacle triggered. Mandatory objectives remain unchanged.");
+      vibeMeter.applyDelta(4, "echo-sync-surge");
+    },
+  });
 
   postComposer.registerPass("residual-floor");
   const stopClockSceneSync = dayNightScene.bindClock(clock);
@@ -148,6 +170,39 @@ function startRuntime() {
   hud.setVibeHudState(vibeSystem.getHudState());
   hud.setFinaleStatus(0, 3);
   hud.setFinaleMessage(`Run ${runIndex} initialized with seed ${runSeed}.`);
+  hud.setEchoesSettings({
+    enabled: featureFlags.echoesEnabled,
+    online: typeof navigator === "undefined" ? true : navigator.onLine !== false,
+  });
+  hud.setEchoesStatus(echoes.getStatusSnapshot());
+  hud.registerEchoesOptInHook(({ enabled }) => {
+    const status = echoes.setEnabled(enabled);
+    hud.setEchoesSettings(status);
+    if (enabled) {
+      const helloPacket = echoes.beginOptInHandshake();
+      if (helloPacket) {
+        // Local loopback stands in for lightweight signaling during optional mode.
+        echoes.ingestRemoteHandshake({
+          sessionId: `${helloPacket.sessionId}-peer`,
+          sentAt: helloPacket.sentAt,
+        });
+      }
+      return;
+    }
+    hud.setEchoesFallbackMessage("Echoes disabled. Continuing in deterministic solo-safe mode.");
+  });
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("online", () => {
+      echoes.setOnline(true);
+      if (echoes.getStatusSnapshot().enabled) {
+        echoes.beginOptInHandshake();
+      }
+    });
+    window.addEventListener("offline", () => {
+      echoes.setOnline(false);
+    });
+  }
 
   function mountRunControls() {
     const shell = document.createElement("div");
@@ -210,6 +265,8 @@ function startRuntime() {
   });
 
   sceneLifecycle.onUpdate((deltaMs) => {
+    const lookDelta = playerController.consumeLookDelta();
+    playerController.state.yaw = (playerController.state.yaw ?? 0) + lookDelta.x;
     clock.update(deltaMs);
     pickupLoop.tick(deltaMs);
     const runSummary = vibeMeter.updateRunAggregation(deltaMs);
@@ -226,6 +283,36 @@ function startRuntime() {
     });
     if (secretUpdate.unlocked) {
       vibeMeter.addSecretFlag(secretUpdate.secretFlag);
+    }
+    echoes.tick();
+    const localEchoPacket = echoes.publishLocalPose({
+      ...playerController.state.position,
+      y: playerController.state.position.y ?? 0,
+      yaw: playerController.state.yaw ?? 0,
+    });
+    if (localEchoPacket) {
+      echoes.ingestRemotePose({
+        ...localEchoPacket,
+        sessionId: `${localEchoPacket.sessionId}-peer`,
+        syncState: {
+          key: vibeSystem.state.activeTemporary?.id ?? "idle",
+          eligible: Boolean(vibeSystem.state.activeTemporary),
+          reportedAt: performance.now(),
+          confidence: 0.9,
+        },
+      });
+    }
+    echoRenderHooks.ingestRemoteEchoes(echoes.getRemoteEchoes(), performance.now());
+    echoRenderHooks.update(performance.now());
+    echoes.detectSyncWindow({
+      key: vibeSystem.state.activeTemporary?.id ?? "idle",
+      eligible: Boolean(vibeSystem.state.activeTemporary),
+      reportedAt: performance.now(),
+      confidence: 1,
+    });
+    const visibleEchoes = echoRenderHooks.getVisibleEchoes();
+    if (visibleEchoes.length > 0 && echoes.getStatusSnapshot().enabled) {
+      hud.setPrompt(`Echoes nearby: ${visibleEchoes.length}. Match Vibe states to trigger a sync surge.`);
     }
     hud.setVibeHudState(vibeSystem.getHudState());
   });
@@ -253,6 +340,8 @@ function startRuntime() {
     runIndex,
     anomalyLayout,
     featureFlags,
+    isSoloFallbackGuaranteed: true,
+    canCompleteMandatoryObjectivesOffline: true,
     registerPuzzleCompletion: (puzzleId) => {
       const snapshot = finaleGate.registerPuzzleCompletion(puzzleId);
       hud.setFinaleStatus(snapshot.solvedPuzzleCount, snapshot.requiredPuzzleCount);
@@ -291,6 +380,8 @@ function startRuntime() {
       dayNightScene,
       spatialAudio,
       hud,
+      echoes,
+      echoRenderHooks,
       stopMeterSync,
       stopClockSceneSync,
       stopClockAudioSync,

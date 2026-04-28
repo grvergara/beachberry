@@ -103,11 +103,24 @@ export function createHud(rootElement) {
   paintInvalidText.setAttribute("aria-live", "polite");
   paintShell.append(paintLabel, paintStatusText, paintChargeText, paintInvalidText);
 
-  hudRoot.append(meterShell, promptShell, layerShell, paintShell, settingsShell);
+  const echoesShell = createElement("section", "hud-echoes-panel");
+  const echoesLabel = createElement("h2", "hud-echoes-label", "Echoes");
+  const echoesStatusText = createElement("p", "hud-echoes-status", "Echoes offline.");
+  const echoesFallbackText = createElement("p", "hud-echoes-fallback", "");
+  echoesFallbackText.setAttribute("aria-live", "polite");
+  const echoesToggleLabel = createElement("label", "hud-echoes-toggle-label");
+  const echoesToggle = document.createElement("input");
+  echoesToggle.type = "checkbox";
+  echoesToggle.className = "hud-echoes-toggle";
+  echoesToggleLabel.append(echoesToggle, document.createTextNode(" Enable optional echoes"));
+  echoesShell.append(echoesLabel, echoesToggleLabel, echoesStatusText, echoesFallbackText);
+
+  hudRoot.append(meterShell, promptShell, layerShell, paintShell, echoesShell, settingsShell);
   rootElement.appendChild(hudRoot);
   const cueHooks = new Set();
   const layerControlHooks = new Set();
   const comfortHooks = new Set();
+  const echoesOptInHooks = new Set();
   const comfortState = {
     reducedMotion: false,
     intensityScale: 1,
@@ -269,6 +282,52 @@ export function createHud(rootElement) {
     dayNightCue.textContent = `${icon} phase active. Visual intensity ${Math.round(intensity * 100)}%.`;
   }
 
+  function setEchoesSettings(snapshot = {}) {
+    const enabled = Boolean(snapshot.enabled);
+    echoesToggle.checked = enabled;
+    if (snapshot.online === false) {
+      echoesStatusText.textContent = "Echoes unavailable while offline.";
+      return;
+    }
+    echoesStatusText.textContent = enabled
+      ? "Echoes opt-in enabled."
+      : "Echoes disabled. Solo path remains fully available.";
+  }
+
+  function setEchoesStatus(snapshot = {}) {
+    const state = snapshot.handshakeState ?? "idle";
+    const remoteCount = Number.isFinite(snapshot.remoteCount) ? snapshot.remoteCount : 0;
+    if (state === "disabled") {
+      echoesStatusText.textContent = "Echoes disabled. Solo path remains fully available.";
+      return;
+    }
+    if (state === "offline") {
+      echoesStatusText.textContent = "Echoes offline. Running in solo-safe fallback mode.";
+      return;
+    }
+    if (state === "connecting") {
+      echoesStatusText.textContent = "Echoes connecting...";
+      return;
+    }
+    if (state === "connected") {
+      echoesStatusText.textContent = `Echoes connected (${remoteCount} nearby).`;
+      return;
+    }
+    echoesStatusText.textContent = "Echoes ready. Toggle opt-in to connect.";
+  }
+
+  function setEchoesFallbackMessage(text) {
+    echoesFallbackText.textContent = text || "";
+  }
+
+  function registerEchoesOptInHook(hook) {
+    if (typeof hook !== "function") {
+      return () => {};
+    }
+    echoesOptInHooks.add(hook);
+    return () => echoesOptInHooks.delete(hook);
+  }
+
   function emitLayerControlRequest(payload) {
     for (const hook of layerControlHooks) {
       hook(payload);
@@ -361,6 +420,13 @@ export function createHud(rootElement) {
     });
   });
 
+  echoesToggle.addEventListener("change", () => {
+    const payload = { enabled: echoesToggle.checked };
+    for (const hook of echoesOptInHooks) {
+      hook(payload);
+    }
+  });
+
   return {
     element: hudRoot,
     setMeterValue,
@@ -376,6 +442,9 @@ export function createHud(rootElement) {
     setVibeHudState,
     setPaintModeState,
     setPaintInvalidPlacementFeedback,
+    setEchoesSettings,
+    setEchoesStatus,
+    setEchoesFallbackMessage,
     setLayerState,
     setLayerLockoutFeedback,
     setDayNightCue,
@@ -383,6 +452,7 @@ export function createHud(rootElement) {
     registerSpatialCueHook,
     registerLayerControlHook,
     registerComfortChangeHook,
+    registerEchoesOptInHook,
     getComfortOptions,
     mountSettingsSlot,
     dispose,

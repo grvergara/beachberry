@@ -164,11 +164,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T044 [US6] Implement ephemeral session ID generation and opt-in handshake in `net/echoes.js`
-- [ ] T045 [P] [US6] Implement remote echo pose interpolation and visibility rendering hooks in `render/scene.js`
-- [ ] T046 [US6] Implement cooperative sync window detection and spectacle trigger in `net/echoes.js`
-- [ ] T047 [US6] Integrate echoes settings, status, and offline fallback messaging in `ui/hud.js`
-- [ ] T048 [US6] Enforce non-blocking solo fallback paths for all mandatory objectives in `bootstrap.js`
+- [X] T044 [US6] Implement ephemeral session ID generation and opt-in handshake in `net/echoes.js`
+- [X] T045 [P] [US6] Implement remote echo pose interpolation and visibility rendering hooks in `render/scene.js`
+- [X] T046 [US6] Implement cooperative sync window detection and spectacle trigger in `net/echoes.js`
+- [X] T047 [US6] Integrate echoes settings, status, and offline fallback messaging in `ui/hud.js`
+- [X] T048 [US6] Enforce non-blocking solo fallback paths for all mandatory objectives in `bootstrap.js`
 
 **Checkpoint**: US6 remains optional and never gates mandatory progression.
 
