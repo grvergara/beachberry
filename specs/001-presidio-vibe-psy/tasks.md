@@ -31,14 +31,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T006 Initialize renderer, camera, resize handling, and scene lifecycle in `render/scene.js`
-- [ ] T007 [P] Implement shared post-processing composer skeleton and pass hooks in `render/post.js`
-- [ ] T008 [P] Define stable park anchor constants and geospatial IDs in `world/park-anchors.js`
-- [ ] T009 Implement bounded terrain/tiles loading and walkable collision mesh extraction in `world/terrain-tiles.js`
-- [ ] T010 Implement desktop pointer + mobile touch control routing with graceful fallbacks in `game/player.js`
-- [ ] T011 [P] Implement deterministic seeded RNG utilities and seed API in `content/seeds.js`
-- [ ] T012 [P] Implement global HUD scaffold (meter shell, prompts, settings panel slots) in `ui/hud.js`
-- [ ] T013 Add runtime feature flags and optional echoes opt-in defaults in `bootstrap.js`
+- [X] T006 Initialize renderer, camera, resize handling, and scene lifecycle in `render/scene.js`
+- [X] T007 [P] Implement shared post-processing composer skeleton and pass hooks in `render/post.js`
+- [X] T008 [P] Define stable park anchor constants and geospatial IDs in `world/park-anchors.js`
+- [X] T009 Implement bounded terrain/tiles loading and walkable collision mesh extraction in `world/terrain-tiles.js`
+- [X] T010 Implement desktop pointer + mobile touch control routing with graceful fallbacks in `game/player.js`
+- [X] T011 [P] Implement deterministic seeded RNG utilities and seed API in `content/seeds.js`
+- [X] T012 [P] Implement global HUD scaffold (meter shell, prompts, settings panel slots) in `ui/hud.js`
+- [X] T013 Add runtime feature flags and optional echoes opt-in defaults in `bootstrap.js`
 
 **Checkpoint**: Foundation ready; user story phases can proceed.
 
