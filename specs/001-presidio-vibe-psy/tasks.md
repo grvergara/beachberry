@@ -128,10 +128,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T035 [US5] Implement accelerated clock and phase event hooks in `game/time-of-day.js`
-- [ ] T036 [P] [US5] Bind sky/lighting transitions and landmark night behavior to clock phase in `render/scene.js`
-- [ ] T037 [P] [US5] Implement spatial audio mood transitions keyed by meter + day/night in `audio/spatial.js`
-- [ ] T038 [US5] Add comfort options (reduced motion/intensity) with non-motion day/night cues in `ui/hud.js`
+- [X] T035 [US5] Implement accelerated clock and phase event hooks in `game/time-of-day.js`
+- [X] T036 [P] [US5] Bind sky/lighting transitions and landmark night behavior to clock phase in `render/scene.js`
+- [X] T037 [P] [US5] Implement spatial audio mood transitions keyed by meter + day/night in `audio/spatial.js`
+- [X] T038 [US5] Add comfort options (reduced motion/intensity) with non-motion day/night cues in `ui/hud.js`
 
 **Checkpoint**: US5 is independently functional with readable, comfort-aware cycle states.
 

@@ -205,3 +205,115 @@ export function createLayerSceneState(options = {}) {
     getSnapshot,
   };
 }
+
+function lerp(min, max, t) {
+  return min + (max - min) * t;
+}
+
+function clamp01(value) {
+  return clamp(Number.isFinite(value) ? value : 0, 0, 1);
+}
+
+function createLandmarkLights(phaseId) {
+  const activeAtNight = phaseId === "night" || phaseId === "dusk" || phaseId === "dawn";
+  return {
+    bridgeLights: activeAtNight,
+    skylineBloom: activeAtNight,
+    palaceSilhouetteBoost: activeAtNight,
+  };
+}
+
+export function createDayNightSceneController(options = {}) {
+  const state = {
+    clock: null,
+    meterNormalized: 0,
+    phase: 0.35,
+    phaseId: "day",
+    skyBlend: 0.15,
+    skySaturation: 0.35,
+    skyMotion: 0.18,
+    ambientLight: 0.8,
+    landmarkLights: createLandmarkLights("day"),
+    reducedMotion: Boolean(options.reducedMotion),
+    intensityScale: clamp01(options.intensityScale ?? 1),
+  };
+  const subscribers = new Set();
+
+  function emit(reason = "update") {
+    const snapshot = getSnapshot();
+    for (const subscriber of subscribers) {
+      subscriber(snapshot, reason);
+    }
+  }
+
+  function recompute(reason = "recompute") {
+    const phaseDistanceFromNoon = Math.abs(state.phase - 0.5) * 2;
+    const nightFactor = clamp01(1 - Math.abs(state.phase - 0.5) * 2.5);
+    const moodIntensity = clamp01((state.meterNormalized * 0.65 + nightFactor * 0.35) * state.intensityScale);
+    const motionMultiplier = state.reducedMotion ? 0.35 : 1;
+    state.skyBlend = clamp01(lerp(0.1, 0.92, moodIntensity));
+    state.skySaturation = clamp01(lerp(0.25, 1, moodIntensity));
+    state.skyMotion = clamp01(lerp(0.12, 0.95, moodIntensity * motionMultiplier));
+    state.ambientLight = clamp01(lerp(0.95, 0.24, phaseDistanceFromNoon));
+    state.landmarkLights = createLandmarkLights(state.phaseId);
+    emit(reason);
+  }
+
+  function bindClock(clock) {
+    state.clock = clock ?? null;
+    if (!clock || typeof clock.subscribe !== "function") {
+      return () => {};
+    }
+    return clock.subscribe((snapshot) => {
+      state.phase = snapshot.phase;
+      state.phaseId = snapshot.phaseId;
+      recompute("clock");
+    });
+  }
+
+  function applyMeterSnapshot(snapshot = {}) {
+    state.meterNormalized = clamp01(snapshot.normalized);
+    recompute("meter");
+  }
+
+  function setComfortOptions(comfort = {}) {
+    state.reducedMotion = Boolean(comfort.reducedMotion);
+    state.intensityScale = clamp01(comfort.intensityScale ?? state.intensityScale);
+    recompute("comfort");
+    return getSnapshot();
+  }
+
+  function subscribe(listener, emitImmediately = true) {
+    if (typeof listener !== "function") {
+      return () => {};
+    }
+    subscribers.add(listener);
+    if (emitImmediately) {
+      listener(getSnapshot(), "subscribe");
+    }
+    return () => subscribers.delete(listener);
+  }
+
+  function getSnapshot() {
+    return {
+      phase: state.phase,
+      phaseId: state.phaseId,
+      skyBlend: state.skyBlend,
+      skySaturation: state.skySaturation,
+      skyMotion: state.skyMotion,
+      ambientLight: state.ambientLight,
+      landmarkLights: { ...state.landmarkLights },
+      reducedMotion: state.reducedMotion,
+      intensityScale: state.intensityScale,
+      meterNormalized: state.meterNormalized,
+    };
+  }
+
+  return {
+    bindClock,
+    applyMeterSnapshot,
+    setComfortOptions,
+    subscribe,
+    getSnapshot,
+  };
+}

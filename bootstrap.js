@@ -1,9 +1,11 @@
 import { createSeededRandom, createRunSeed } from "./content/seeds.js";
 import { createPickupCollectionLoop, createPlayerController } from "./game/player.js";
+import { createTimeOfDayClock } from "./game/time-of-day.js";
 import { createVibeMeter } from "./game/vibe-meter.js";
 import { createVibeSystem } from "./game/vibes.js";
+import { createSpatialAudioMoodController } from "./audio/spatial.js";
 import { createPostComposer } from "./render/post.js";
-import { createSceneLifecycle } from "./render/scene.js";
+import { createDayNightSceneController, createSceneLifecycle } from "./render/scene.js";
 import { createHud } from "./ui/hud.js";
 import { createTerrainTilesSystem } from "./world/terrain-tiles.js";
 
@@ -54,11 +56,16 @@ function startRuntime() {
   const featureFlags = resolveFeatureFlags(window.__PRESIDIO_FLAGS__);
 
   const sceneLifecycle = createSceneLifecycle(canvas);
+  const clock = createTimeOfDayClock({
+    dayLengthMs: 160000,
+  });
   const postComposer = createPostComposer({
     distortionFloor: 0.05,
   });
+  const dayNightScene = createDayNightSceneController();
   const playerController = createPlayerController(canvas);
   const hud = createHud(gameRoot);
+  const spatialAudio = createSpatialAudioMoodController();
   const terrainTiles = createTerrainTilesSystem();
   const vibeMeter = createVibeMeter({ residualFloor: 6, initialValue: 10 });
   const vibeSystem = createVibeSystem({
@@ -73,6 +80,18 @@ function startRuntime() {
   });
 
   postComposer.registerPass("residual-floor");
+  const stopClockSceneSync = dayNightScene.bindClock(clock);
+  const stopClockAudioSync = spatialAudio.bindClock(clock);
+  const stopCueAudioSync = spatialAudio.bindSpatialCueSource(hud);
+  const stopHudComfortSync = hud.registerComfortChangeHook((comfort) => {
+    dayNightScene.setComfortOptions(comfort);
+  });
+  const stopDayNightHudSync = dayNightScene.subscribe((snapshot) => {
+    hud.setDayNightCue({
+      phaseId: snapshot.phaseId,
+      intensityScale: snapshot.intensityScale,
+    });
+  });
   vibeSystem.spawnInitialPickups();
   hud.setPrompt("Tap or click to enter the park.");
   hud.setVibeHudState(vibeSystem.getHudState());
@@ -80,9 +99,12 @@ function startRuntime() {
   const stopMeterSync = vibeMeter.subscribe((snapshot) => {
     hud.setMeterValue(snapshot.value);
     postComposer.applyMeterSnapshot(snapshot);
+    dayNightScene.applyMeterSnapshot(snapshot);
+    spatialAudio.applyMeterSnapshot(snapshot);
   });
 
   sceneLifecycle.onUpdate((deltaMs) => {
+    clock.update(deltaMs);
     pickupLoop.tick(deltaMs);
     hud.setVibeHudState(vibeSystem.getHudState());
   });
@@ -115,8 +137,16 @@ function startRuntime() {
       playerController,
       vibeMeter,
       vibeSystem,
+      clock,
+      dayNightScene,
+      spatialAudio,
       hud,
       stopMeterSync,
+      stopClockSceneSync,
+      stopClockAudioSync,
+      stopCueAudioSync,
+      stopHudComfortSync,
+      stopDayNightHudSync,
     },
   };
 

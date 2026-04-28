@@ -50,7 +50,26 @@ export function createHud(rootElement) {
   const settingsShell = createElement("section", "hud-settings-panel");
   const settingsLabel = createElement("h2", "hud-settings-label", "Settings");
   const settingsSlot = createElement("div", "hud-settings-slots");
+  const comfortShell = createElement("div", "hud-comfort-controls");
+  const reducedMotionLabel = createElement("label", "hud-reduced-motion-label");
+  const reducedMotionToggle = document.createElement("input");
+  reducedMotionToggle.type = "checkbox";
+  reducedMotionToggle.className = "hud-reduced-motion-toggle";
+  reducedMotionLabel.append(reducedMotionToggle, document.createTextNode(" Reduced motion"));
+  const intensityLabel = createElement("label", "hud-intensity-label", "Intensity");
+  const intensitySlider = document.createElement("input");
+  intensitySlider.type = "range";
+  intensitySlider.className = "hud-intensity-slider";
+  intensitySlider.min = "0";
+  intensitySlider.max = "1";
+  intensitySlider.step = "0.05";
+  intensitySlider.value = "1";
+  intensityLabel.appendChild(intensitySlider);
+  const dayNightCue = createElement("p", "hud-day-night-cue", "Sun icon indicates daytime.");
+  dayNightCue.setAttribute("aria-live", "polite");
+  comfortShell.append(reducedMotionLabel, intensityLabel, dayNightCue);
   settingsShell.append(settingsLabel, settingsSlot);
+  settingsShell.appendChild(comfortShell);
 
   const layerShell = createElement("section", "hud-layer-panel");
   const layerLabel = createElement("h2", "hud-layer-label", "Reality Layer");
@@ -80,6 +99,11 @@ export function createHud(rootElement) {
   rootElement.appendChild(hudRoot);
   const cueHooks = new Set();
   const layerControlHooks = new Set();
+  const comfortHooks = new Set();
+  const comfortState = {
+    reducedMotion: false,
+    intensityScale: 1,
+  };
 
   function setMeterValue(percent) {
     const bounded = Math.max(0, Math.min(100, percent));
@@ -205,6 +229,17 @@ export function createHud(rootElement) {
     paintInvalidText.textContent = formatPaintInvalidReason(feedback.reason);
   }
 
+  function setDayNightCue(snapshot = {}) {
+    const phaseId = snapshot.phaseId ?? "day";
+    const icon = phaseId === "night" ? "Moon" : phaseId === "dusk" || phaseId === "dawn" ? "Twilight" : "Sun";
+    const intensity = Number.isFinite(snapshot.intensityScale) ? snapshot.intensityScale : comfortState.intensityScale;
+    if (comfortState.reducedMotion) {
+      dayNightCue.textContent = `${icon} phase active. Reduced motion enabled; rely on palette and landmark glow cues.`;
+      return;
+    }
+    dayNightCue.textContent = `${icon} phase active. Visual intensity ${Math.round(intensity * 100)}%.`;
+  }
+
   function emitLayerControlRequest(payload) {
     for (const hook of layerControlHooks) {
       hook(payload);
@@ -233,6 +268,35 @@ export function createHud(rootElement) {
     return () => layerControlHooks.delete(hook);
   }
 
+  function emitComfortChange() {
+    const snapshot = {
+      reducedMotion: comfortState.reducedMotion,
+      intensityScale: comfortState.intensityScale,
+    };
+    for (const hook of comfortHooks) {
+      hook(snapshot);
+    }
+  }
+
+  function registerComfortChangeHook(hook) {
+    if (typeof hook !== "function") {
+      return () => {};
+    }
+    comfortHooks.add(hook);
+    hook({
+      reducedMotion: comfortState.reducedMotion,
+      intensityScale: comfortState.intensityScale,
+    });
+    return () => comfortHooks.delete(hook);
+  }
+
+  function getComfortOptions() {
+    return {
+      reducedMotion: comfortState.reducedMotion,
+      intensityScale: comfortState.intensityScale,
+    };
+  }
+
   function mountSettingsSlot(node) {
     if (node) {
       settingsSlot.appendChild(node);
@@ -249,6 +313,25 @@ export function createHud(rootElement) {
     });
   }
 
+  reducedMotionToggle.addEventListener("change", () => {
+    comfortState.reducedMotion = reducedMotionToggle.checked;
+    emitComfortChange();
+    setDayNightCue({
+      phaseId: "day",
+      intensityScale: comfortState.intensityScale,
+    });
+  });
+
+  intensitySlider.addEventListener("input", () => {
+    const parsed = Number.parseFloat(intensitySlider.value);
+    comfortState.intensityScale = Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : 1;
+    emitComfortChange();
+    setDayNightCue({
+      phaseId: "day",
+      intensityScale: comfortState.intensityScale,
+    });
+  });
+
   return {
     element: hudRoot,
     setMeterValue,
@@ -263,9 +346,12 @@ export function createHud(rootElement) {
     setPaintInvalidPlacementFeedback,
     setLayerState,
     setLayerLockoutFeedback,
+    setDayNightCue,
     emitSpatialCue,
     registerSpatialCueHook,
     registerLayerControlHook,
+    registerComfortChangeHook,
+    getComfortOptions,
     mountSettingsSlot,
     dispose,
   };
