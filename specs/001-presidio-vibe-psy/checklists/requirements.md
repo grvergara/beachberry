@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Presidio Vibe Psy
+# Specification Quality Checklist: Presidio Psy
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-04-28  

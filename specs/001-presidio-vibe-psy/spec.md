@@ -1,4 +1,4 @@
-# Feature Specification: Presidio Vibe Psy
+# Feature Specification: Presidio Psy
 
 **Feature Branch**: `001-presidio-vibe-psy`  
 **Created**: 2026-04-28  
@@ -214,7 +214,7 @@ This section exists so planners and implementers receive the concrete structure 
 
 ### B. Suggested final titles and tone
 
-- **Primary**: *Presidio Vibe Psy* (working)  
+- **Primary**: *Presidio Psy* (working)  
 - **Alternates**: *Tunnel Tops Trip*, *Bluff Glitch*, *Cliff Walk Void*, *Golden Gate Dream State*  
 - **Tone keywords**: hopeful weird, California golden-hour → neon void, “park that remembers you”.
 
