@@ -1,5 +1,5 @@
 ---
-name: "speckit-implement-orchestrated"
+name: "speckit-orch"
 description: "Run speckit implementation via an orchestrator that launches a fresh subagent per task phase; each phase agent has strict phase scope, self-validates, and commits to the working branch."
 compatibility: "Requires spec-kit project structure with .specify/ directory; orchestrator must be able to launch Task subagents (generalPurpose)."
 metadata:
