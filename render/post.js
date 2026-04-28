@@ -13,6 +13,9 @@ export function createPostComposer(options = {}) {
   const state = {
     exposure: options.exposure ?? 1,
     distortionFloor: options.distortionFloor ?? 0.05,
+    saturation: 0.15,
+    motionWarp: 0.02,
+    psyIntensity: options.distortionFloor ?? 0.05,
   };
 
   function registerPass(name, hooks = {}) {
@@ -46,11 +49,24 @@ export function createPostComposer(options = {}) {
     }
   }
 
+  function applyMeterSnapshot(snapshot) {
+    if (!snapshot) {
+      return state;
+    }
+    const intensity = Math.max(state.distortionFloor, snapshot.psyIntensity ?? 0);
+    state.psyIntensity = intensity;
+    state.saturation = 0.1 + intensity * 0.9;
+    state.motionWarp = 0.01 + intensity * 0.08;
+    state.exposure = 0.95 + intensity * 0.2;
+    return state;
+  }
+
   return {
     state,
     passes,
     registerPass,
     setPassEnabled,
     run,
+    applyMeterSnapshot,
   };
 }

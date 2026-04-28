@@ -22,7 +22,11 @@ export function createHud(rootElement) {
   const promptShell = createElement("section", "hud-prompts");
   const promptLabel = createElement("h2", "hud-prompts-label", "Prompts");
   const promptText = createElement("p", "hud-prompts-text", "Walk to discover your first Vibe.");
+  const pickupFeedback = createElement("p", "hud-pickup-feedback", "");
+  pickupFeedback.setAttribute("aria-live", "polite");
+  const vibesShell = createElement("div", "hud-vibes");
   promptShell.append(promptLabel, promptText);
+  promptShell.append(pickupFeedback, vibesShell);
 
   const settingsShell = createElement("section", "hud-settings-panel");
   const settingsLabel = createElement("h2", "hud-settings-label", "Settings");
@@ -31,6 +35,7 @@ export function createHud(rootElement) {
 
   hudRoot.append(meterShell, promptShell, settingsShell);
   rootElement.appendChild(hudRoot);
+  const cueHooks = new Set();
 
   function setMeterValue(percent) {
     const bounded = Math.max(0, Math.min(100, percent));
@@ -39,6 +44,41 @@ export function createHud(rootElement) {
 
   function setPrompt(text) {
     promptText.textContent = text;
+  }
+
+  function setPickupFeedback(text) {
+    pickupFeedback.textContent = text || "";
+  }
+
+  function setVibeHudState(vibeHudState = {}) {
+    const temporary = vibeHudState.activeTemporary ?? null;
+    const persistent = vibeHudState.persistentVibes ?? [];
+    const entries = [];
+    if (temporary) {
+      const remainingSeconds = Math.max(
+        0,
+        Math.ceil((temporary.expiresAt - performance.now()) / 1000),
+      );
+      entries.push(`${temporary.icon} ${temporary.name} ${remainingSeconds}s`);
+    }
+    for (const vibe of persistent) {
+      entries.push(`${vibe.icon} ${vibe.name}`);
+    }
+    vibesShell.textContent = entries.join(" | ");
+  }
+
+  function emitSpatialCue(payload) {
+    for (const hook of cueHooks) {
+      hook(payload);
+    }
+  }
+
+  function registerSpatialCueHook(hook) {
+    if (typeof hook !== "function") {
+      return () => {};
+    }
+    cueHooks.add(hook);
+    return () => cueHooks.delete(hook);
   }
 
   function mountSettingsSlot(node) {
@@ -55,6 +95,10 @@ export function createHud(rootElement) {
     element: hudRoot,
     setMeterValue,
     setPrompt,
+    setPickupFeedback,
+    setVibeHudState,
+    emitSpatialCue,
+    registerSpatialCueHook,
     mountSettingsSlot,
     dispose,
   };

@@ -1,5 +1,6 @@
 const POINTER_SENSITIVITY = 0.0018;
 const TOUCH_SENSITIVITY = 0.0025;
+const MOVE_SPEED_UNITS_PER_SECOND = 18;
 
 function getMovementVector(activeKeys) {
   const x = (activeKeys.has("KeyD") ? 1 : 0) - (activeKeys.has("KeyA") ? 1 : 0);
@@ -15,6 +16,7 @@ export function createPlayerController(targetElement, options = {}) {
   const state = {
     lookDelta: { x: 0, y: 0 },
     moveVector: { x: 0, z: 0 },
+    position: { x: 0, y: 0, z: 0 },
     usingPointerLock: false,
     controlMode: "keyboard",
   };
@@ -97,6 +99,13 @@ export function createPlayerController(targetElement, options = {}) {
     return delta;
   }
 
+  function update(deltaMs) {
+    const dt = Math.max(0, deltaMs) / 1000;
+    state.position.x += state.moveVector.x * MOVE_SPEED_UNITS_PER_SECOND * dt;
+    state.position.z += state.moveVector.z * MOVE_SPEED_UNITS_PER_SECOND * dt;
+    return state.position;
+  }
+
   targetElement.addEventListener("mousemove", onMouseMove);
   targetElement.addEventListener("touchstart", onTouchStart, { passive: true });
   targetElement.addEventListener("touchmove", onTouchMove, { passive: true });
@@ -119,6 +128,49 @@ export function createPlayerController(targetElement, options = {}) {
     state,
     requestPointerLock,
     consumeLookDelta,
+    update,
     dispose,
+  };
+}
+
+export function createPickupCollectionLoop(options = {}) {
+  const playerController = options.playerController;
+  const vibeMeter = options.vibeMeter;
+  const vibeSystem = options.vibeSystem;
+  const hud = options.hud;
+
+  if (!playerController || !vibeMeter || !vibeSystem) {
+    throw new Error("createPickupCollectionLoop requires playerController, vibeMeter, and vibeSystem.");
+  }
+
+  function tick(deltaMs) {
+    playerController.update(deltaMs);
+    vibeSystem.update();
+
+    const pickup = vibeSystem.findPickupInRange(playerController.state.position);
+    if (!pickup) {
+      return;
+    }
+
+    const result = vibeSystem.collectPickup(pickup.id);
+    if (!result) {
+      return;
+    }
+
+    vibeMeter.applyDelta(result.meterDelta, `pickup-${result.vibe.id}`);
+    if (hud) {
+      hud.setPickupFeedback(`Collected ${result.vibe.name}.`);
+      hud.setPrompt("Keep exploring for more anomalies.");
+      hud.setVibeHudState(vibeSystem.getHudState());
+      hud.emitSpatialCue({
+        type: "vibe-collected",
+        vibeId: result.vibe.id,
+        position: pickup.position,
+      });
+    }
+  }
+
+  return {
+    tick,
   };
 }

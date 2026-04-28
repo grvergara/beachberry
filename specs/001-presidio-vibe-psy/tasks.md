@@ -52,14 +52,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement vibe meter state model and residual floor behavior in `game/vibe-meter.js`
-- [ ] T015 [P] [US1] Implement initial pickup catalog and spawn wiring for first-run onboarding in `game/vibes.js`
-- [ ] T054 [US1] Implement Vibe matrix activation and stacking core (single active temporary ability, persistent stacking) in `game/vibes.js`
-- [ ] T016 [P] [US1] Implement baseline world saturation/motion response to meter changes in `render/post.js`
-- [ ] T017 [US1] Integrate meter HUD readout and pickup feedback prompts in `ui/hud.js`
-- [ ] T057 [P] [US1] Implement Vibe HUD timers/icons and per-Vibe spatial cue hooks in `ui/hud.js`
-- [ ] T018 [US1] Wire pickup collision/collection loop with meter updates in `game/player.js`
-- [ ] T019 [US1] Enforce no-login start flow and first-interaction bootstrap sequence in `bootstrap.js`
+- [X] T014 [US1] Implement vibe meter state model and residual floor behavior in `game/vibe-meter.js`
+- [X] T015 [P] [US1] Implement initial pickup catalog and spawn wiring for first-run onboarding in `game/vibes.js`
+- [X] T054 [US1] Implement Vibe matrix activation and stacking core (single active temporary ability, persistent stacking) in `game/vibes.js`
+- [X] T016 [P] [US1] Implement baseline world saturation/motion response to meter changes in `render/post.js`
+- [X] T017 [US1] Integrate meter HUD readout and pickup feedback prompts in `ui/hud.js`
+- [X] T057 [P] [US1] Implement Vibe HUD timers/icons and per-Vibe spatial cue hooks in `ui/hud.js`
+- [X] T018 [US1] Wire pickup collision/collection loop with meter updates in `game/player.js`
+- [X] T019 [US1] Enforce no-login start flow and first-interaction bootstrap sequence in `bootstrap.js`
 
 **Checkpoint**: US1 is fully functional and testable on its own.
 

@@ -1,5 +1,7 @@
 import { createSeededRandom, createRunSeed } from "./content/seeds.js";
-import { createPlayerController } from "./game/player.js";
+import { createPickupCollectionLoop, createPlayerController } from "./game/player.js";
+import { createVibeMeter } from "./game/vibe-meter.js";
+import { createVibeSystem } from "./game/vibes.js";
 import { createPostComposer } from "./render/post.js";
 import { createSceneLifecycle } from "./render/scene.js";
 import { createHud } from "./ui/hud.js";
@@ -58,11 +60,46 @@ function startRuntime() {
   const playerController = createPlayerController(canvas);
   const hud = createHud(gameRoot);
   const terrainTiles = createTerrainTilesSystem();
+  const vibeMeter = createVibeMeter({ residualFloor: 6, initialValue: 10 });
+  const vibeSystem = createVibeSystem({
+    rng,
+    onSpatialCue: (payload) => hud.emitSpatialCue(payload),
+  });
+  const pickupLoop = createPickupCollectionLoop({
+    playerController,
+    vibeMeter,
+    vibeSystem,
+    hud,
+  });
 
   postComposer.registerPass("residual-floor");
-  hud.setMeterValue(0);
-  hud.setPrompt("Explore the park and find your first anomaly.");
-  sceneLifecycle.start();
+  vibeSystem.spawnInitialPickups();
+  hud.setPrompt("Tap or click to enter the park.");
+  hud.setVibeHudState(vibeSystem.getHudState());
+
+  const stopMeterSync = vibeMeter.subscribe((snapshot) => {
+    hud.setMeterValue(snapshot.value);
+    postComposer.applyMeterSnapshot(snapshot);
+  });
+
+  sceneLifecycle.onUpdate((deltaMs) => {
+    pickupLoop.tick(deltaMs);
+    hud.setVibeHudState(vibeSystem.getHudState());
+  });
+
+  let started = false;
+  async function bootstrapOnFirstInteraction() {
+    if (started) {
+      return;
+    }
+    started = true;
+    hud.setPrompt("Explore the park and find your first anomaly.");
+    await playerController.requestPointerLock();
+    sceneLifecycle.start();
+  }
+
+  canvas.addEventListener("pointerdown", bootstrapOnFirstInteraction, { once: true });
+  canvas.addEventListener("touchstart", bootstrapOnFirstInteraction, { once: true, passive: true });
 
   window.presidioPsy = {
     startedAt: performance.now(),
@@ -76,7 +113,10 @@ function startRuntime() {
       postComposer,
       terrainTiles,
       playerController,
+      vibeMeter,
+      vibeSystem,
       hud,
+      stopMeterSync,
     },
   };
 
