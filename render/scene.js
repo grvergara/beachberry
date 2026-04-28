@@ -2,6 +2,13 @@ const DEFAULT_FOV_DEGREES = 70;
 const DEFAULT_NEAR = 0.1;
 const DEFAULT_FAR = 4000;
 const DEFAULT_MAX_DPR = 2;
+const DEFAULT_LAYER_IDS = Object.freeze(["real", "psy", "fractal", "void"]);
+const DEFAULT_COLLIDER_MASK_BY_LAYER = Object.freeze({
+  real: "collider-real",
+  psy: "collider-real+psy",
+  fractal: "collider-real+psy+fractal",
+  void: "collider-full",
+});
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -11,6 +18,19 @@ function getViewportSize(canvas) {
   const width = canvas.clientWidth || window.innerWidth || 1;
   const height = canvas.clientHeight || window.innerHeight || 1;
   return { width, height };
+}
+
+function normalizeLayerTag(tags = []) {
+  const layerSet = new Set();
+  for (const tag of tags) {
+    if (typeof tag === "string" && tag.length > 0) {
+      layerSet.add(tag);
+    }
+  }
+  if (layerSet.size === 0) {
+    layerSet.add("real");
+  }
+  return [...layerSet];
 }
 
 export function createSceneLifecycle(canvas, options = {}) {
@@ -114,5 +134,74 @@ export function createSceneLifecycle(canvas, options = {}) {
     stop,
     onUpdate,
     dispose,
+  };
+}
+
+export function createLayerSceneState(options = {}) {
+  const layerIds = options.layerIds ?? DEFAULT_LAYER_IDS;
+  const colliderMaskByLayer = options.colliderMaskByLayer ?? DEFAULT_COLLIDER_MASK_BY_LAYER;
+  const visibilityEntries = new Map();
+  let activeLayer = layerIds[0] ?? "real";
+
+  function registerSceneNode(nodeId, nodeConfig = {}) {
+    if (!nodeId) {
+      return null;
+    }
+    const layers = normalizeLayerTag(nodeConfig.layers);
+    const collidable = nodeConfig.collidable !== false;
+    const visible = layers.includes(activeLayer);
+    const entry = {
+      id: nodeId,
+      layers,
+      collidable,
+      visible,
+    };
+    visibilityEntries.set(nodeId, entry);
+    return { ...entry };
+  }
+
+  function setActiveLayer(layerId) {
+    if (!layerIds.includes(layerId)) {
+      return getSnapshot();
+    }
+    activeLayer = layerId;
+    for (const entry of visibilityEntries.values()) {
+      entry.visible = entry.layers.includes(activeLayer);
+    }
+    return getSnapshot();
+  }
+
+  function getVisibleNodeIds() {
+    return [...visibilityEntries.values()]
+      .filter((entry) => entry.visible)
+      .map((entry) => entry.id);
+  }
+
+  function getColliderMask() {
+    return colliderMaskByLayer[activeLayer] ?? colliderMaskByLayer.real;
+  }
+
+  function getCollidableNodeIds() {
+    return [...visibilityEntries.values()]
+      .filter((entry) => entry.visible && entry.collidable)
+      .map((entry) => entry.id);
+  }
+
+  function getSnapshot() {
+    return {
+      activeLayer,
+      colliderMask: getColliderMask(),
+      visibleNodeIds: getVisibleNodeIds(),
+      collidableNodeIds: getCollidableNodeIds(),
+    };
+  }
+
+  return {
+    registerSceneNode,
+    setActiveLayer,
+    getColliderMask,
+    getVisibleNodeIds,
+    getCollidableNodeIds,
+    getSnapshot,
   };
 }

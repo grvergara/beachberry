@@ -91,12 +91,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Implement layer graph, transition rules, and safety fallback routes in `game/layers.js`
-- [ ] T055 [US3] Enforce Layer Key (V04) manual layer-switch cooldown (8s) and lockout feedback in `game/layers.js`
-- [ ] T026 [P] [US3] Implement layer-driven scene visibility toggles and collider masks in `render/scene.js`
-- [ ] T027 [P] [US3] Bind meter thresholds to layer bleed suggestions without removing agency in `game/vibe-meter.js`
-- [ ] T028 [US3] Integrate layer state indicators and controls in `ui/hud.js`
-- [ ] T029 [US3] Connect puzzle rewards to layer unlock progression in `game/puzzles/viewpoint.js`
+- [X] T025 [US3] Implement layer graph, transition rules, and safety fallback routes in `game/layers.js`
+- [X] T055 [US3] Enforce Layer Key (V04) manual layer-switch cooldown (8s) and lockout feedback in `game/layers.js`
+- [X] T026 [P] [US3] Implement layer-driven scene visibility toggles and collider masks in `render/scene.js`
+- [X] T027 [P] [US3] Bind meter thresholds to layer bleed suggestions without removing agency in `game/vibe-meter.js`
+- [X] T028 [US3] Integrate layer state indicators and controls in `ui/hud.js`
+- [X] T029 [US3] Connect puzzle rewards to layer unlock progression in `game/puzzles/viewpoint.js`
 
 **Checkpoint**: US3 is independently testable and does not dead-end progression.
 

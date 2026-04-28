@@ -34,6 +34,8 @@ export function createViewpointPuzzleSystem(options = {}) {
   const onPuzzleSolved = options.onPuzzleSolved ?? (() => {});
   const onMitigationNeeded = options.onMitigationNeeded ?? (() => {});
   const onMitigationCleared = options.onMitigationCleared ?? (() => {});
+  const onLayerRewardUnlocked = options.onLayerRewardUnlocked ?? (() => {});
+  const onVibeRewardGranted = options.onVibeRewardGranted ?? (() => {});
 
   const anchorById = new Map(anchors.map((anchor) => [anchor.id, anchor]));
 
@@ -54,6 +56,8 @@ export function createViewpointPuzzleSystem(options = {}) {
     ),
     cameraYawDeg: 0,
     mitigationActive: false,
+    unlockedLayers: new Set(["real"]),
+    grantedRewardVibes: new Set(),
   };
 
   function getPuzzleProgress(contract) {
@@ -83,7 +87,28 @@ export function createViewpointPuzzleSystem(options = {}) {
       solvedPuzzleIds: [...state.solvedPuzzleIds],
       puzzleProgress: contracts.map((contract) => getPuzzleProgress(contract)).filter(Boolean),
       cameraYawDeg: state.cameraYawDeg,
+      unlockedLayers: [...state.unlockedLayers],
+      grantedRewardVibes: [...state.grantedRewardVibes],
     };
+  }
+
+  function applyPuzzleReward(reward = {}, context = {}) {
+    if (reward.unlockLayer && !state.unlockedLayers.has(reward.unlockLayer)) {
+      state.unlockedLayers.add(reward.unlockLayer);
+      onLayerRewardUnlocked({
+        layerId: reward.unlockLayer,
+        reward,
+        context,
+      });
+    }
+    if (reward.grantVibeId && !state.grantedRewardVibes.has(reward.grantVibeId)) {
+      state.grantedRewardVibes.add(reward.grantVibeId);
+      onVibeRewardGranted({
+        vibeId: reward.grantVibeId,
+        reward,
+        context,
+      });
+    }
   }
 
   function updateCameraYaw(lookDelta = { x: 0 }) {
@@ -200,6 +225,10 @@ export function createViewpointPuzzleSystem(options = {}) {
       reward: activeContract.reward,
       targetCount: activeContract.landmarkTargets.length,
     });
+    applyPuzzleReward(activeContract.reward, {
+      puzzleId: activeContract.id,
+      solvedCount: state.solvedPuzzleIds.size,
+    });
     state.activePuzzleId = null;
     state.mitigationActive = false;
     onMitigationCleared();
@@ -212,5 +241,6 @@ export function createViewpointPuzzleSystem(options = {}) {
     tick,
     getSnapshot,
     getPuzzleProgress,
+    applyPuzzleReward,
   };
 }

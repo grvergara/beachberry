@@ -52,9 +52,26 @@ export function createHud(rootElement) {
   const settingsSlot = createElement("div", "hud-settings-slots");
   settingsShell.append(settingsLabel, settingsSlot);
 
-  hudRoot.append(meterShell, promptShell, settingsShell);
+  const layerShell = createElement("section", "hud-layer-panel");
+  const layerLabel = createElement("h2", "hud-layer-label", "Reality Layer");
+  const layerStateText = createElement("p", "hud-layer-state", "Current: real");
+  const layerSuggestionText = createElement("p", "hud-layer-suggestion", "");
+  const layerLockoutText = createElement("p", "hud-layer-lockout", "");
+  layerLockoutText.setAttribute("aria-live", "polite");
+  const layerControls = createElement("div", "hud-layer-controls");
+  const layerControlButtons = ["real", "psy", "fractal", "void"].map((layerId) => {
+    const button = createElement("button", "hud-layer-button", layerId);
+    button.type = "button";
+    button.dataset.layerId = layerId;
+    layerControls.appendChild(button);
+    return button;
+  });
+  layerShell.append(layerLabel, layerStateText, layerSuggestionText, layerLockoutText, layerControls);
+
+  hudRoot.append(meterShell, promptShell, layerShell, settingsShell);
   rootElement.appendChild(hudRoot);
   const cueHooks = new Set();
+  const layerControlHooks = new Set();
 
   function setMeterValue(percent) {
     const bounded = Math.max(0, Math.min(100, percent));
@@ -110,6 +127,42 @@ export function createHud(rootElement) {
     vibesShell.textContent = entries.join(" | ");
   }
 
+  function setLayerState(layerState = {}) {
+    const currentLayer = layerState.currentLayer ?? "real";
+    const unlockedLayers = new Set(layerState.unlockedLayers ?? ["real"]);
+    const bleedSuggestion = layerState.bleedSuggestion ?? null;
+    layerStateText.textContent = `Current: ${currentLayer}`;
+    layerSuggestionText.textContent = bleedSuggestion?.suggestLayer
+      ? `Bleed suggests ${bleedSuggestion.suggestLayer} (${bleedSuggestion.intensity ?? "stable"}).`
+      : "";
+    for (const button of layerControlButtons) {
+      const layerId = button.dataset.layerId;
+      button.disabled = !unlockedLayers.has(layerId);
+      button.setAttribute("aria-pressed", String(layerId === currentLayer));
+    }
+  }
+
+  function setLayerLockoutFeedback(feedback = {}) {
+    if (!feedback.message) {
+      layerLockoutText.textContent = "";
+      return;
+    }
+    const cooldownRemainingMs = Number.isFinite(feedback.cooldownRemainingMs)
+      ? Math.max(0, feedback.cooldownRemainingMs)
+      : 0;
+    if (cooldownRemainingMs > 0) {
+      layerLockoutText.textContent = `${feedback.message} ${Math.ceil(cooldownRemainingMs / 1000)}s remaining.`;
+      return;
+    }
+    layerLockoutText.textContent = feedback.message;
+  }
+
+  function emitLayerControlRequest(payload) {
+    for (const hook of layerControlHooks) {
+      hook(payload);
+    }
+  }
+
   function emitSpatialCue(payload) {
     for (const hook of cueHooks) {
       hook(payload);
@@ -124,6 +177,14 @@ export function createHud(rootElement) {
     return () => cueHooks.delete(hook);
   }
 
+  function registerLayerControlHook(hook) {
+    if (typeof hook !== "function") {
+      return () => {};
+    }
+    layerControlHooks.add(hook);
+    return () => layerControlHooks.delete(hook);
+  }
+
   function mountSettingsSlot(node) {
     if (node) {
       settingsSlot.appendChild(node);
@@ -132,6 +193,12 @@ export function createHud(rootElement) {
 
   function dispose() {
     hudRoot.remove();
+  }
+
+  for (const button of layerControlButtons) {
+    button.addEventListener("click", () => {
+      emitLayerControlRequest({ targetLayer: button.dataset.layerId });
+    });
   }
 
   return {
@@ -144,8 +211,11 @@ export function createHud(rootElement) {
     setPuzzleSuccessMessage,
     setFinaleStatus,
     setVibeHudState,
+    setLayerState,
+    setLayerLockoutFeedback,
     emitSpatialCue,
     registerSpatialCueHook,
+    registerLayerControlHook,
     mountSettingsSlot,
     dispose,
   };
