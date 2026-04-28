@@ -13,3 +13,11 @@ Thumbs.db
 .env
 .env.local
 *.pem
+
+# Node / build outputs
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env*
