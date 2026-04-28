@@ -145,12 +145,12 @@
 
 ### Implementation for User Story 7
 
-- [ ] T039 [US7] Implement ending matrix evaluator and finale gate resolution in `game/endings.js`
-- [ ] T040 [P] [US7] Implement run-level meter/inventory aggregation for ending eligibility in `game/vibe-meter.js`
-- [ ] T041 [P] [US7] Implement seed-driven anomaly placement API preserving fixed anchors in `content/seeds.js`
-- [ ] T042 [US7] Integrate finale messaging and ending reveal UI states in `ui/hud.js`
-- [ ] T043 [US7] Wire seed selection/start-new-run flow in `bootstrap.js`
-- [ ] T056 [US7] Enforce Void Whisper (V06) first-run secrecy and secret unlock gating (seed + exposure condition) in `game/endings.js`
+- [X] T039 [US7] Implement ending matrix evaluator and finale gate resolution in `game/endings.js`
+- [X] T040 [P] [US7] Implement run-level meter/inventory aggregation for ending eligibility in `game/vibe-meter.js`
+- [X] T041 [P] [US7] Implement seed-driven anomaly placement API preserving fixed anchors in `content/seeds.js`
+- [X] T042 [US7] Integrate finale messaging and ending reveal UI states in `ui/hud.js`
+- [X] T043 [US7] Wire seed selection/start-new-run flow in `bootstrap.js`
+- [X] T056 [US7] Enforce Void Whisper (V06) first-run secrecy and secret unlock gating (seed + exposure condition) in `game/endings.js`
 
 **Checkpoint**: US7 provides replayable seeded runs and all required ending archetypes.
 

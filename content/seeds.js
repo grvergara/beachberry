@@ -66,3 +66,72 @@ export function shuffleWithSeed(seedInput, items) {
   }
   return output;
 }
+
+function hashToken(input = "") {
+  const seed = xmur3(`${input}`)();
+  return seed >>> 0;
+}
+
+function sortedAnchorCopy(anchors = []) {
+  return [...anchors].sort((a, b) => `${a.id}`.localeCompare(`${b.id}`));
+}
+
+export function createSeededAnomalyPlacement(options = {}) {
+  const seed = normalizeSeed(options.seed);
+  const rng = createSeededRandom(seed);
+  const anchors = sortedAnchorCopy(options.fixedAnchors ?? []);
+  const movableSlots = options.movableSlots ?? [];
+
+  function getAnchors() {
+    return anchors.map((anchor) => ({
+      ...anchor,
+      fixed: true,
+    }));
+  }
+
+  function placeMovableAnomalies(request = {}) {
+    const requestedCount = Number.isFinite(request.count)
+      ? Math.max(0, Math.floor(request.count))
+      : movableSlots.length;
+    const pool = movableSlots.map((slot, index) => ({
+      ...slot,
+      slotId: slot.slotId ?? `slot-${index}`,
+    }));
+    const shuffled = shuffleWithSeed(`${seed}:movable:${requestedCount}`, pool);
+    const selected = shuffled.slice(0, Math.min(requestedCount, shuffled.length));
+
+    return selected.map((slot, index) => ({
+      anomalyId: `${request.prefix ?? "anom"}-${index + 1}-${hashToken(`${seed}:${slot.slotId}`).toString(16).slice(0, 6)}`,
+      slotId: slot.slotId,
+      position: {
+        x: slot.position?.x ?? 0,
+        y: slot.position?.y ?? 0,
+        z: slot.position?.z ?? 0,
+      },
+      seed,
+      movable: true,
+    }));
+  }
+
+  function buildLayout(request = {}) {
+    return {
+      seed,
+      anchors: getAnchors(),
+      anomalies: placeMovableAnomalies(request),
+      anchorHash: hashToken(
+        getAnchors()
+          .map((anchor) => `${anchor.id}:${anchor.position?.x ?? 0}:${anchor.position?.y ?? 0}:${anchor.position?.z ?? 0}`)
+          .join("|"),
+      ),
+      variationHash: hashToken(`${seed}:${rng.nextInt(1_000_000)}`),
+    };
+  }
+
+  return {
+    seed,
+    rng,
+    getAnchors,
+    placeMovableAnomalies,
+    buildLayout,
+  };
+}

@@ -35,6 +35,11 @@ export function createHud(rootElement) {
   puzzleSuccessText.setAttribute("aria-live", "polite");
   const finaleStatusText = createElement("p", "hud-finale-status", "");
   finaleStatusText.setAttribute("aria-live", "polite");
+  const finaleMessageText = createElement("p", "hud-finale-message", "");
+  finaleMessageText.setAttribute("aria-live", "polite");
+  const endingRevealTitle = createElement("h3", "hud-ending-title", "");
+  const endingRevealBody = createElement("p", "hud-ending-body", "");
+  endingRevealBody.setAttribute("aria-live", "polite");
   puzzleProgressShell.append(puzzleProgressLabel, puzzleProgressRing);
   const vibesShell = createElement("div", "hud-vibes");
   promptShell.append(promptLabel, promptText);
@@ -43,6 +48,9 @@ export function createHud(rootElement) {
     puzzleProgressShell,
     puzzleSuccessText,
     finaleStatusText,
+    finaleMessageText,
+    endingRevealTitle,
+    endingRevealBody,
     pickupFeedback,
     vibesShell,
   );
@@ -140,6 +148,27 @@ export function createHud(rootElement) {
       return;
     }
     finaleStatusText.textContent = `Finale prerequisite: ${solved}/${required} viewpoints stabilized.`;
+  }
+
+  function setFinaleMessage(text) {
+    finaleMessageText.textContent = text || "";
+  }
+
+  function revealEnding(ending = {}) {
+    if (!ending?.id) {
+      endingRevealTitle.textContent = "";
+      endingRevealBody.textContent = "";
+      return;
+    }
+    endingRevealTitle.textContent = `Ending: ${ending.title ?? ending.id}`;
+    endingRevealBody.textContent = ending.reason ?? "";
+  }
+
+  function resetFinaleReveal() {
+    finaleStatusText.textContent = "";
+    finaleMessageText.textContent = "";
+    endingRevealTitle.textContent = "";
+    endingRevealBody.textContent = "";
   }
 
   function setVibeHudState(vibeHudState = {}) {
@@ -341,6 +370,9 @@ export function createHud(rootElement) {
     setPuzzleProgress,
     setPuzzleSuccessMessage,
     setFinaleStatus,
+    setFinaleMessage,
+    revealEnding,
+    resetFinaleReveal,
     setVibeHudState,
     setPaintModeState,
     setPaintInvalidPlacementFeedback,
